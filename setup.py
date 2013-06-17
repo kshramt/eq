@@ -14,4 +14,5 @@ distutils.core.setup(name='eq',
                                   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
                                   "Operating System :: Unix",
                                   "Programming Language :: Python :: 3",
-                                  "Topic :: Scientific/Engineering",])
+                                  "Topic :: Scientific/Engineering",],
+                     requires=["numpy"])
