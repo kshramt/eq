@@ -15,4 +15,5 @@ distutils.core.setup(name='eq',
                                   "Operating System :: Unix",
                                   "Programming Language :: Python :: 3",
                                   "Topic :: Scientific/Engineering",],
-                     requires=["numpy"])
+                     requires=['scipy',
+                               "kshramt"])

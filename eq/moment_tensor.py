@@ -1,0 +1,610 @@
+# import sys
+import operator
+import functools
+import random
+
+from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign, rand
+# from kshramt import pp
+
+
+class MomentTensor(object):
+    """
+    Converter between moment tensor formats.
+    Extension is positive.
+    Angles are in scale of degree.
+    """
+
+    _inv_sqrt2 = sqrt(2)/2
+    _R_yz_from_xx_zz = dot(((0, -1, 0),
+                            (1, 0, 0),
+                            (0, 0, 1)),
+                           ((_inv_sqrt2, 0, _inv_sqrt2),
+                            (0, 1, 0),
+                            (-_inv_sqrt2, 0, _inv_sqrt2)))
+    _R_conjugate_for_yz = dot(((1, 0, 0),
+                               (0, 0, 1),
+                               (0, -1, 0)),
+                              ((-1, 0, 0),
+                               (0, -1, 0),
+                               (0, 0, 1)))
+    def __init__(self):
+        self.xx = 0
+        self.yy = 0
+        self.zz = 0
+        self.xy = 0
+        self.xz = 0
+        self.yz = 0
+
+    def __repr__(self):
+        return '{cls}: {mxyz}'.format(cls=self.__class__,
+                                      mxyz=self.mxyz)
+
+    @property
+    def moment(self):
+        (m1, _, m3), _ = self.ms_rotateion
+        return (m3 - m1)/2
+
+    @property
+    def strike_dip_rakes(self):
+        return self._strike_dip_rakes(self.mxyz)
+
+    @property
+    def strike_dip_rake(self):
+        sdr, _ = self.strike_dip_rakes
+        return sdr
+
+    def set_strike_dip_rake(self, strike, dip, rake, m0=1):
+        assert m0 >= 0
+
+        R = self._dots(self._rotate_xy(-strike),
+                       self._rotate_xz(-dip),
+                       self._rotate_xy(rake),
+                       self._R_yz_from_xx_zz)
+        self.mxyz = self._dots(R,
+                               ((-m0, 0, 0),
+                                (0, 0, 0),
+                                (0, 0, m0)),
+                               transpose(R))
+        return self
+
+    def _correction_strike_dip_rake(self, strike, dip, rake):
+        if dip > 90: # 0 <= dip <= 90
+            dip = 180 - dip
+            if strike >= 0:
+                strike -= 180
+            else:
+                strike += 180
+            rake *= -1
+        elif dip == 90: # 0 <= strike < 180 if dip == 90
+            if strike < 0:
+                strike += 180
+                rake *= -1
+            if strike == 180:
+                strike = 0
+                rake *= -1
+        if rake == -180: # -180 < rake <= 180
+            rake = 180
+        if strike == -180: # -180 < strike <= 180
+            strike = 180
+
+        return strike, dip, rake
+
+    def _strike_dip_rake_from_R_yz(self, R_yz):
+        """
+        R_yz is a rotation matrix where
+
+        R_yz*M*transpose(R_yz) = [[0, 0, 0],
+                                  [0, 0, 1],
+                                  [0, 1, 0]]
+
+        Retured values are (strike, dip, rake), where
+
+        0 <= dip <= 90
+        -180 < strike < 180
+        0 <= strike < 180 if dip == 90
+        -180 < rake <= 180
+        rake == 0 if dip == 0 (only rake - strike can be resolved)
+        """
+        R12 = R_yz[0][1]
+        R13 = R_yz[0][2]
+        R22 = R_yz[1][1]
+        R23 = R_yz[1][2]
+        R32 = R_yz[2][1]
+        R33 = R_yz[2][2] # result is unstable if abs(R33) is small.
+
+        sqrt2 = sqrt(2)
+
+        # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
+        cos_dip = R33
+        if absolute(cos_dip) > 1:
+            cos_dip = sign(cos_dip) # XXX:
+        dip = arccos(cos_dip)
+        sin_dip = sin(dip)
+        if absolute(sin_dip) <= 1e-7: # XXX:
+            rake = 0
+            strike = arctan2(R12, R22)
+        else:
+            strike = arctan2(-R23, R13)
+            sin_strike = -R23/sin_dip
+            sin_rake = R32/sin_dip
+            if 1/sqrt2 <= absolute(sin_strike):
+                rake = arctan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
+            else:
+                rake = arctan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
+
+        return self._correction_strike_dip_rake(rad2deg(strike), rad2deg(dip), rad2deg(rake))
+
+    def _strike_dip_rakes(self, m):
+        """
+        Returns
+        ((strike1, dip1, rake1),
+         (strike2, dip2, rake2))
+        where (strike2, dip2, rake2) could be unstable.
+        """
+        _, R = self._sorted_eig(m)
+        R_yz = dot(R, transpose(self._R_yz_from_xx_zz))
+        R_yz_conjugate = dot(R,
+                             transpose(dot(self._R_conjugate_for_yz,
+                                           self._R_yz_from_xx_zz)))
+        sdr1 = self._strike_dip_rake_from_R_yz(R_yz)
+        sdr2 = self._strike_dip_rake_from_R_yz(R_yz_conjugate)
+        if absolute(R_yz[2][2]) <= 1/sqrt(2):
+            return sdr1, sdr2
+        else:
+            return sdr2, sdr1
+
+    @property
+    def ms_rotateion(self):
+        return self._sorted_eig(self.mxyz)
+
+    def _sorted_eig(self, m):
+        es, vs = eigh(m)
+        es, is_ = self._sorted_i(es)
+
+        return es, transpose(self._update_by_indices(transpose(vs), is_))
+
+    def _update_by_indices(self, xs, is_):
+        assert len(xs) == len(is_)
+
+        ret = []
+        for i in is_:
+            ret.append(xs[i])
+
+        return ret
+
+    def _sorted_i(self, xs):
+        sorted_xs = []
+        sorted_indices = []
+        for i, x in sorted(enumerate(xs), key=operator.itemgetter(1)):
+            sorted_xs.append(x)
+            sorted_indices.append(i)
+        return sorted_xs, sorted_indices
+
+    # xyz
+
+    @property
+    def yx(self):
+        return self.xy
+
+    @yx.setter
+    def yx(self, value):
+        self.xy = value
+
+    @property
+    def zx(self):
+        return self.xz
+
+    @zx.setter
+    def zx(self, value):
+        self.xz = value
+
+    @property
+    def zy(self):
+        return self.yz
+
+    @zy.setter
+    def zy(self, value):
+        self.yz = value
+
+    @property
+    def mxyz(self):
+        return ((self.xx, self.xy, self.xz),
+                (self.yx, self.yy, self.yz),
+                (self.zx, self.zy, self.zz))
+
+    @mxyz.setter
+    def mxyz(self, value):
+        ((self.xx, self.xy, self.xz),
+         (      _, self.yy, self.yz),
+         (      _,       _, self.zz)) = value
+
+    # rtf
+
+    @property
+    def rr(self):
+        return self.zz
+
+    @rr.setter
+    def rr(self, value):
+        self.zz = value
+
+    @property
+    def tt(self):
+        return self.yy
+
+    @tt.setter
+    def tt(self, value):
+        self.yy = value
+
+    @property
+    def ff(self):
+        return self.xx
+
+    @ff.setter
+    def ff(self, value):
+        self.xx = value
+
+    @property
+    def rt(self):
+        return -self.yz
+
+    @rt.setter
+    def rt(self, value):
+        self.yz = -value
+
+    @property
+    def rf(self):
+        return self.xz
+
+    @rf.setter
+    def rf(self, value):
+        self.xz = value
+
+    @property
+    def tf(self):
+        return -self.xy
+
+    @tf.setter
+    def tf(self, value):
+        self.xy = -value
+
+    @property
+    def tr(self):
+        return -self.yz
+
+    @tr.setter
+    def tr(self, value):
+        self.yz = -value
+
+    @property
+    def fr(self):
+        return self.xz
+
+    @fr.setter
+    def fr(self, value):
+        self.xz = value
+
+    @property
+    def ft(self):
+        return -self.xy
+
+    @ft.setter
+    def ft(self, value):
+        self.xy = -value
+
+    @property
+    def mrtf(self):
+        return ((self.rr, self.rt, self.rf),
+                (self.tr, self.tt, self.tf),
+                (self.fr, self.ft, self.ff))
+
+    @mrtf.setter
+    def mrtf(self, value):
+        ((self.rr, self.rt, self.rf),
+         (      _, self.tt, self.tf),
+         (      _,       _, self.ff)) = value
+
+    # m1to6
+
+    @property
+    def m1(self):
+        return self.xy
+
+    @property
+    def m2(self):
+        return (-self.xx) + self.m6
+
+    @property
+    def m3(self):
+        return -self.xz
+
+    @property
+    def m4(self):
+        return -self.yz
+
+    @property
+    def m5(self):
+        return self.zz - self.m6
+
+    @property
+    def m6(self):
+        return (self.xx + self.yy + self.zz)/3
+
+    @property
+    def m1to6(self):
+        return (self.m1, self.m2, self.m3, self.m4, self.m5, self.m6)
+
+    @m1to6.setter
+    def m1to6(self, value):
+        m1to6 = tuple(value)
+        m2 = m1to6[1]
+        m5 = m1to6[4]
+        m6 = m1to6[5]
+        self.xx = m6 - m2
+        self.yy = m6 + m2 - m5
+        self.zz = m6 + m5
+        self.xy = m1to6[0]
+        self.xz = -m1to6[2]
+        self.yz = -m1to6[3]
+
+    def _dots(self, *ms):
+        return functools.reduce(dot, ms)
+
+    def _rotate_xy(self, theta):
+        t = deg2rad(theta)
+        return ((cos(t), -sin(t), 0),
+                (sin(t), cos(t), 0),
+                (0, 0, 1))
+
+    def _rotate_xz(self, theta):
+        t = deg2rad(theta)
+        return ((cos(t), 0, -sin(t)),
+                (0, 1, 0),
+                (sin(t), 0, cos(t)))
+
+
+if __name__ == '__main__':
+    import unittest
+
+
+    class Tester(unittest.TestCase):
+        def is_almost_equal_angle(self, x, y):
+            delta = 0.01
+            if absolute(x) > 180 - delta:
+                xl = x - delta
+                xr = x + delta
+                if xl < -180:
+                    return -180 <= y < xr or 360 + xl < y <= 180
+                else:
+                    return xl < y <= 180 or -180 <= y < xr - 360
+            else:
+                return absolute(x - y) <= delta
+
+        def assert_almost_equal_angle(self, x, y):
+            self.assertTrue(self.is_almost_equal_angle(x, y))
+
+        def assert_almost_equal_plane(self, sdr1, sdr2):
+            s1, d1, r1 = sdr1
+            s2, d2, r2 = sdr2
+            s1, d1, r1 = self.m._correction_strike_dip_rake(s1, d1, r1)
+            if d1 == 0:
+                r1 = 0
+                s1 = s1 - r1
+            if self.is_almost_equal_angle(d2, 90):
+                try:
+                    self.assert_almost_equal_angle(s1, s2)
+                    self.assert_almost_equal_angle(d1, d2)
+                    self.assert_almost_equal_angle(r1, r2)
+                except AssertionError:
+                    s2 = (s2 - 180)%180
+                    r2 = -r2
+                    for x, y in ((s1, s2), (d1, d2), (r1, r2)):
+                        self.assert_almost_equal_angle(x, y)
+            else:
+                self.assert_almost_equal_angle(s1, s2)
+                self.assert_almost_equal_angle(d1, d2)
+                self.assert_almost_equal_angle(r1, r2)
+
+        def assert_one_plane_is_ok(self, sdr, sdrs):
+            #print('ORIG:\t{}\t{}\t{}'.format(*sdr), file=sys.stderr)
+            def f(sdrs):
+                assert len(sdrs) >= 1
+                sdr_ = sdrs[0]
+                #print('C:\t{}\t{}\t{}'.format(*sdr_), file=sys.stderr)
+                if len(sdrs) == 1:
+                    self.assert_almost_equal_plane(sdr, sdr_)
+                else:
+                    try:
+                        self.assert_almost_equal_plane(sdr, sdr_)
+                    except AssertionError:
+                        f(sdrs[1:])
+            f(sdrs)
+
+        def setUp(self):
+            self.m = MomentTensor()
+            self.m.xx = 1
+            self.m.yy = 2
+            self.m.zz = 3
+            self.m.xy = 4
+            self.m.xz = 5
+            self.m.yz = 6
+
+        def test_moment(self):
+            self.m.m1to6 = (2, 0, 0, 0, 0, 3)
+            self.assertAlmostEqual(self.m.moment, 2)
+
+        def test_set_strike_dip_rake(self):
+            for s, d, r, (xx, xy, xz,
+                          yx, yy, yz,
+                          zx, zy, zz) in ((0, 0, 0, (0, 0, 0,
+                                                     0, 0, 1,
+                                                     0, 1, 0)),
+                                          (90, 0, 0, (0, 0, 1,
+                                                      0, 0, 0,
+                                                      1, 0, 0)),
+                                          (0, 90, 0, (0, 1, 0,
+                                                      1, 0, 0,
+                                                      0, 0, 0)),
+                                          (45, 90, 0, (1, 0, 0,
+                                                       0, -1, 0,
+                                                       0, 0, 0)),
+                                          (0, 45, -90, (1, 0, 0,
+                                                        0, 0, 0,
+                                                        0, 0, -1)),
+                                          (-180, 45, -90, (1, 0, 0,
+                                                           0, 0, 0,
+                                                           0, 0, -1)),
+                                          (180, 45, -90, (1, 0, 0,
+                                                          0, 0, 0,
+                                                          0, 0, -1))):
+                self.m.set_strike_dip_rake(s, d, r)
+                self.assertAlmostEqual(self.m.xx, xx)
+                self.assertAlmostEqual(self.m.xy, xy)
+                self.assertAlmostEqual(self.m.xz, xz)
+                self.assertAlmostEqual(self.m.yx, yx)
+                self.assertAlmostEqual(self.m.yy, yy)
+                self.assertAlmostEqual(self.m.yz, yz)
+                self.assertAlmostEqual(self.m.zx, zx)
+                self.assertAlmostEqual(self.m.zy, zy)
+                self.assertAlmostEqual(self.m.zz, zz)
+
+        def test_strike_dip_rake(self):
+            for m1to6, (s0, d0, r0) in (((1, 0, 0, 0, 0, 0), (0, 90, 0)),
+                                        ((0, 2, 0, 0, 0, 0), (45, 90, 180)),
+                                        ((0, 0, 3, 0, 0, 0), (0, 90, -90)),
+                                        ((0, 0, 0, 4, 0, 0), (90, 90, 90)),
+                                        ((0, 0, 0, 0, 5, 0), (-90, 45, 90)),
+                                        ((0, 0, 0, 0, 0, 6), (0, 45, 90))):
+                self.m.m1to6 = m1to6
+                s, d, r = self.m.strike_dip_rake
+                self.assert_almost_equal_plane((s, d, r), (s0, d0, r0))
+
+            for s, d, r in ((45, 90, 0),
+                            (45, 90, 1),
+                            (45, 90, 180),
+                            (0, 90, 180)):
+                s_, d_, r_ = self.m.set_strike_dip_rake(s, d, r).strike_dip_rake
+                self.assert_almost_equal_plane((s_, d_, r_), (s, d, r))
+
+            for _ in range(10000):
+                s = random.randint(-179999, 180000)/1000
+                self.assert_one_plane_is_ok((s, 0, 0),
+                                            self.m\
+                                            .set_strike_dip_rake(s, 0, 0)\
+                                            .strike_dip_rakes)
+                self.assert_one_plane_is_ok((s, 90, 0),
+                                            self.m\
+                                            .set_strike_dip_rake(s, 90, 0)\
+                                            .strike_dip_rakes)
+
+            for sdr in ((180, 90, 1),):
+                sdr1, sdr2 = self.m.set_strike_dip_rake(*sdr).strike_dip_rakes
+                s_, d_, r_ = self.m._correction_strike_dip_rake(*sdr)
+                if d_ == 0:
+                    r_ = 0
+                    s_ = s_ - r_
+                self.assert_one_plane_is_ok((s_, d_, r_), (sdr1, sdr2))
+
+            for _ in range(10000):
+                s = 360*(1 - rand()) - 180
+                d = 90*rand()
+                r = 360*(1 - rand()) - 180
+                s_, d_, r_ = self.m._correction_strike_dip_rake(s, d, r)
+                if d_ == 0:
+                    r_ = 0
+                    s_ = s_ - r_
+                sdr1, sdr2 = self.m.set_strike_dip_rake(s, d, r).strike_dip_rakes
+
+        def test__sorted_eig(self):
+            es, vs = self.m._sorted_eig(((2, 0, 0),
+                                         (0, 0, 0),
+                                         (0, 0, 1)))
+            self.assertAlmostEqual(es, [0, 1, 2])
+            ans = ((0, 0, 1),
+                   (1, 0, 0),
+                   (0, 1, 0))
+            for i in range(3):
+                for j in range(3):
+                    self.assertAlmostEqual(vs[i][j], ans[i][j])
+
+        def test__update_by_indices(self):
+            xs = self.m._update_by_indices([0, 1, 2], [0, 2, 1])
+            self.assertEqual(xs, [0, 2, 1])
+
+        def test__sorted_i(self):
+            xs, is_ = self.m._sorted_i([10, 30, 20])
+            self.assertEqual(xs, [10, 20, 30])
+            self.assertEqual(is_, [0, 2, 1])
+
+        def test_mrtf(self):
+            orig = self.m.mrtf
+            self.m.mrtf = orig
+            self.assertAlmostEqual(self.m.mrtf, orig)
+
+        def test_mxyz(self):
+            orig = self.m.mxyz
+            self.m.mxyz = orig
+            self.assertAlmostEqual(self.m.mxyz, orig)
+
+        def test_m1to6(self):
+            m1to6 = (1, 2, 3, 4, 5, 6)
+            self.m.m1to6 = m1to6
+            self.assertAlmostEqual(self.m.m1to6, m1to6)
+
+        def test_xyz(self):
+            self.assertEqual(self.m.xx, 1)
+            self.assertEqual(self.m.yy, 2)
+            self.assertEqual(self.m.zz, 3)
+            self.assertEqual(self.m.xy, 4)
+            self.assertEqual(self.m.xz, 5)
+            self.assertEqual(self.m.yz, 6)
+
+        def test_rtf(self):
+            self.assertEqual(self.m.rr, 3)
+            self.assertEqual(self.m.tt, 2)
+            self.assertEqual(self.m.ff, 1)
+            self.assertEqual(self.m.rt, -6)
+            self.assertEqual(self.m.rf, 5)
+            self.assertEqual(self.m.tf, -4)
+
+        def test_xyz_rtf(self):
+            self.assertEqual(self.m.rr, self.m.zz)
+            self.assertEqual(self.m.tt, self.m.yy)
+            self.assertEqual(self.m.ff, self.m.xx)
+            self.assertEqual(self.m.tr, -self.m.yz)
+            self.assertEqual(self.m.fr, self.m.xz)
+            self.assertEqual(self.m.ft, -self.m.xy)
+
+        def test_symmetry(self):
+            self.assertEqual(self.m.xy, self.m.yx)
+            self.assertEqual(self.m.xz, self.m.zx)
+            self.assertEqual(self.m.yz, self.m.zy)
+
+            self.assertEqual(self.m.rt, self.m.tr)
+            self.assertEqual(self.m.rf, self.m.fr)
+            self.assertEqual(self.m.tf, self.m.ft)
+
+            self.m.yx = 10
+            self.assertEqual(self.m.xy, self.m.yx)
+            self.m.zx = 20
+            self.assertEqual(self.m.xy, self.m.yx)
+            self.m.zy = 30
+            self.assertEqual(self.m.xy, self.m.yx)
+
+            self.m.tr = 40
+            self.assertEqual(self.m.rt, self.m.tr)
+            self.m.fr = 50
+            self.assertEqual(self.m.rt, self.m.tr)
+            self.m.ft = 60
+            self.assertEqual(self.m.rt, self.m.tr)
+
+        def test_1to6(self):
+            self.assertEqual(self.m.m1, 4)
+            self.assertEqual(self.m.m2, 1)
+            self.assertEqual(self.m.m3, -5)
+            self.assertEqual(self.m.m4, -6)
+            self.assertEqual(self.m.m5, 1)
+            self.assertEqual(self.m.m6, 2)
+
+
+    unittest.main()
