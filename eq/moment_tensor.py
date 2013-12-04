@@ -114,8 +114,9 @@ class MomentTensor(object):
 
         # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
         cos_dip = R33
-        if absolute(cos_dip) > 1:
-            cos_dip = sign(cos_dip) # XXX:
+        if absolute(cos_dip) > 1: # XXX:
+            assert absolute(cos_dip) < 1 + 1e-7
+            cos_dip = sign(cos_dip)
         dip = arccos(cos_dip)
         sin_dip = sin(dip)
         if absolute(sin_dip) <= 1e-7: # XXX:
