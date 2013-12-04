@@ -84,8 +84,6 @@ class MomentTensor(object):
                 rake *= -1
         if rake == -180: # -180 < rake <= 180
             rake = 180
-        if strike == -180: # -180 < strike <= 180
-            strike = 180
 
         return strike, dip, rake
 
@@ -100,7 +98,7 @@ class MomentTensor(object):
         Retured values are (strike, dip, rake), where
 
         0 <= dip <= 90
-        -180 < strike < 180
+        -180 <= strike <= 180
         0 <= strike < 180 if dip == 90
         -180 < rake <= 180
         rake == 0 if dip == 0 (only rake - strike can be resolved)
