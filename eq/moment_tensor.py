@@ -1,9 +1,9 @@
 # import sys
 import operator
 import functools
-import random
+from random import randint
 
-from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign, rand
+from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
 # from kshramt import pp
 
 
@@ -485,7 +485,7 @@ if __name__ == '__main__':
                 self.assert_almost_equal_plane((s_, d_, r_), (s, d, r))
 
             for _ in range(10000):
-                s = random.randint(-179999, 180000)/1000
+                s = randint(-179999, 180000)/1000
                 self.assert_one_plane_is_ok((s, 0, 0),
                                             self.m\
                                             .set_strike_dip_rake(s, 0, 0)\
@@ -504,9 +504,9 @@ if __name__ == '__main__':
                 self.assert_one_plane_is_ok((s_, d_, r_), (sdr1, sdr2))
 
             for _ in range(10000):
-                s = 360*(1 - rand()) - 180
-                d = 90*rand()
-                r = 360*(1 - rand()) - 180
+                s = randint(-36000, 36000)/200
+                d = randint(0, 18000)/200
+                r = randint(-36000, 36000)/200
                 s_, d_, r_ = self.m._correction_strike_dip_rake(s, d, r)
                 if d_ == 0:
                     r_ = 0
