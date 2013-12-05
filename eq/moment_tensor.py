@@ -217,6 +217,14 @@ class MomentTensor(object):
          (      _, self.yy, self.yz),
          (      _,       _, self.zz)) = value
 
+    @property
+    def mxxyyzzxyxzyz(self):
+        return self.xx, self.yy, self.zz, self.xy, self.xz, self.yz
+
+    @mxxyyzzxyxzyz.setter
+    def mxxyyzzxyxzyz(self, value):
+        self.xx, self.yy, self.zz, self.xy, self.xz, self.yz = value
+
     # rtf
 
     @property
@@ -302,6 +310,14 @@ class MomentTensor(object):
         ((self.rr, self.rt, self.rf),
          (      _, self.tt, self.tf),
          (      _,       _, self.ff)) = value
+
+    @property
+    def mrrttffrtrftf(self):
+        return self.rr, self.tt, self.ff, self.rt, self.rf, self.tf
+
+    @mrrttffrtrftf.setter
+    def mrrttffrtrftf(self, value):
+        self.rr, self.tt, self.ff, self.rt, self.rf, self.tf = value
 
     # m1to6
 
