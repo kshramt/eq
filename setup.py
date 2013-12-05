@@ -1,6 +1,10 @@
 import distutils.core
+
+import eq
+
+
 distutils.core.setup(name='eq',
-                     version='0.0.0',
+                     version=eq.__version__,
                      author='kshramt',
                      author_email='thisisdummy@example.com',
                      url='http://www.thisisdummy.example.com',
