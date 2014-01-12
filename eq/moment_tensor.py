@@ -165,11 +165,7 @@ class MomentTensor(object):
     def _update_by_indices(self, xs, is_):
         assert len(xs) == len(is_)
 
-        ret = []
-        for i in is_:
-            ret.append(xs[i])
-
-        return ret
+        return [xs[i] for i in is_]
 
     def _sorted_i(self, xs):
         sorted_xs = []
