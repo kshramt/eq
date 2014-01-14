@@ -18,7 +18,7 @@ all: test
 test:
 	for f in $$(git ls-files **/*.py)
 	do
-	   coverage run $$f
+	   coverage run -a $$f
 	done
 	coverage html
 
