@@ -497,7 +497,7 @@ if __name__ == '__main__':
                 s_, d_, r_ = self.m.set_strike_dip_rake(s, d, r).strike_dip_rake
                 self.assert_almost_equal_plane((s_, d_, r_), (s, d, r))
 
-            for _ in range(10000):
+            for _ in range(500):
                 s = randint(-179999, 180000)/1000
                 self.assert_one_plane_is_ok((s, 0, 0),
                                             self.m\
@@ -516,7 +516,7 @@ if __name__ == '__main__':
                     s_ = s_ - r_
                 self.assert_one_plane_is_ok((s_, d_, r_), (sdr1, sdr2))
 
-            for _ in range(10000):
+            for _ in range(500):
                 s = randint(-36000, 36000)/200
                 d = randint(0, 18000)/200
                 r = randint(-36000, 36000)/200
