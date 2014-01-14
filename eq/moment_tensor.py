@@ -183,29 +183,9 @@ class MomentTensor(object):
 
     # xyz
 
-    @property
-    def yx(self):
-        return self.xy
-
-    @yx.setter
-    def yx(self, value):
-        self.xy = value
-
-    @property
-    def zx(self):
-        return self.xz
-
-    @zx.setter
-    def zx(self, value):
-        self.xz = value
-
-    @property
-    def zy(self):
-        return self.yz
-
-    @zy.setter
-    def zy(self, value):
-        self.yz = value
+    yx = property(lambda self: self.xy, lambda self, value: setattr(self, 'xy', value))
+    zx = property(lambda self: self.xz, lambda self, value: setattr(self, 'xz', value))
+    zy = property(lambda self: self.yz, lambda self, value: setattr(self, 'yz', value))
 
     @property
     def mxyz(self):
@@ -251,29 +231,12 @@ class MomentTensor(object):
 
     # m1to6
 
-    @property
-    def m1(self):
-        return self.xy
-
-    @property
-    def m2(self):
-        return (-self.xx) + self.m6
-
-    @property
-    def m3(self):
-        return -self.xz
-
-    @property
-    def m4(self):
-        return -self.yz
-
-    @property
-    def m5(self):
-        return self.zz - self.m6
-
-    @property
-    def m6(self):
-        return (self.xx + self.yy + self.zz)/3
+    m1 = property(lambda self: self.xy)
+    m2 = property(lambda self: (-self.xx) + self.m6)
+    m3 = property(lambda self: -self.xz)
+    m4 = property(lambda self: -self.yz)
+    m5 = property(lambda self: self.zz - self.m6)
+    m6 = property(lambda self: (self.xx + self.yy + self.zz)/3)
 
     @property
     def m1to6(self):
