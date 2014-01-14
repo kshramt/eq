@@ -19,29 +19,29 @@ FLOAT_MAX = pylab.finfo(FLOAT).max
 
 class Meta(object):
 
-    INTERNAL_LEN_FROM_TYPE = {
+    INTERNAL_BYTES_FROM_TYPE = {
         'short_string': 8,
         'long_string': 16,
     }
-    LEN_SHORT_STRING = INTERNAL_LEN_FROM_TYPE['short_string']
-    LEN_LONG_STRING = INTERNAL_LEN_FROM_TYPE['long_string']
+    BYTES_SHORT_STRING = INTERNAL_BYTES_FROM_TYPE['short_string']
+    BYTES_LONG_STRING = INTERNAL_BYTES_FROM_TYPE['long_string']
 
-    ASCII_WIDTH_FROM_TYPE = {
+    ASCII_BYTES_FROM_TYPE = {
         'logical': 10,
         'integer': 10,
         'float': 15,
         'enum': 10,
-        'short_string': LEN_SHORT_STRING,
-        'long_string': LEN_LONG_STRING,
+        'short_string': BYTES_SHORT_STRING,
+        'long_string': BYTES_LONG_STRING,
     }
 
     ASCII_FORMAT_FROM_TYPE = {
-        'logical': '{{:>{}d}}'.format(ASCII_WIDTH_FROM_TYPE['logical']),
-        'integer': '{{:>{}d}}'.format(ASCII_WIDTH_FROM_TYPE['integer']),
-        'float': '{{:>#{}.7g}}'.format(ASCII_WIDTH_FROM_TYPE['float']),
-        'enum': '{{:>{}d}}'.format(ASCII_WIDTH_FROM_TYPE['enum']),
-        'short_string': '{{:<{}s}}'.format(LEN_SHORT_STRING),
-        'long_string': '{{:<{}s}}'.format(LEN_LONG_STRING),
+        'logical': '{{:>{}d}}'.format(ASCII_BYTES_FROM_TYPE['logical']),
+        'integer': '{{:>{}d}}'.format(ASCII_BYTES_FROM_TYPE['integer']),
+        'float': '{{:>#{}.7g}}'.format(ASCII_BYTES_FROM_TYPE['float']),
+        'enum': '{{:>{}d}}'.format(ASCII_BYTES_FROM_TYPE['enum']),
+        'short_string': '{:s}', # assume internal values to always have BYTES_SHORT_STRING bytes
+        'long_string': '{:s}', # assume internal values to always have BYTES_LONG_STRING bytes
     }
     PARSE_ASCII_FROM_TYPE = {
         'logical': int,
@@ -56,8 +56,8 @@ class Meta(object):
         'integer': 'i',
         'float': 'f',
         'enum': 'i',
-        'short_string': '{}c'.format(LEN_SHORT_STRING),
-        'long_string': '{}c'.format(LEN_LONG_STRING),
+        'short_string': '{}c'.format(BYTES_SHORT_STRING),
+        'long_string': '{}c'.format(BYTES_LONG_STRING),
     }
 
     UNDEFINED_FROM_TYPE = {
@@ -65,8 +65,8 @@ class Meta(object):
         'integer': -12345,
         'float': -12345.0,
         'enum': -12345,
-        'short_string': ASCII_FORMAT_FROM_TYPE['short_string'].format('-12345'),
-        'long_string': ASCII_FORMAT_FROM_TYPE['long_string'].format('-12345'),
+        'short_string': '-12345  ',
+        'long_string': '-12345          ',
     }
     UNDEFINED_LOGICAL = UNDEFINED_FROM_TYPE['logical']
     UNDEFINED_INTEGER = UNDEFINED_FROM_TYPE['integer']
@@ -289,7 +289,7 @@ class Meta(object):
             t = field['type']
             _name = self._internal_name(field['name'])
             if t == 'short_string' or t == 'long_string':
-                iv_next = iv + self.INTERNAL_LEN_FROM_TYPE[t]
+                iv_next = iv + self.INTERNAL_BYTES_FROM_TYPE[t]
                 setattr(self, _name, b''.join(vs[iv:iv_next]).decode('utf-8'))
                 iv = iv_next
             else:
@@ -371,8 +371,7 @@ class Meta(object):
         if s is None:
             return cls.UNDEFINED_SHORT_STRING
         else:
-            assert len(s) <= cls.LEN_SHORT_STRING
-            return cls.ASCII_FORMAT_FROM_TYPE['short_string'].format(s)
+            return cls._pad_space(s, cls.BYTES_SHORT_STRING)
 
     @classmethod
     def _long_string_from_internal(cls, s):
@@ -386,8 +385,14 @@ class Meta(object):
         if s is None:
             return cls.UNDEFINED_LONG_STRING
         else:
-            assert len(s) <= cls.LEN_LONG_STRING
-            return cls.ASCII_FORMAT_FROM_TYPE['long_string'].format(s)
+            return cls._pad_space(s, cls.BYTES_LONG_STRING)
+
+    @staticmethod
+    def _pad_space(s, n):
+        bs = s.encode()
+        nbs = len(bs)
+        assert nbs <= n
+        return (bs + b' '*(n - nbs)).decode()
 
     @staticmethod
     def _internal_name(s):
@@ -399,7 +404,7 @@ class Meta(object):
         il = 0
         for field in cls.FIELDS:
             t = field['type']
-            ir = il + cls.ASCII_WIDTH_FROM_TYPE[t]
+            ir = il + cls.ASCII_BYTES_FROM_TYPE[t]
             fn = cls.PARSE_ASCII_FROM_TYPE[t]
             _name_il_ir_fns.append((cls._internal_name(field['name']), il, ir, fn))
             il = ir
@@ -409,9 +414,10 @@ class Meta(object):
         ascii_byte = ir
 
         def from_ascii(self, s):
-            assert len(s.encode()) == ascii_byte
+            bs = s.encode()
+            assert len(bs) == ascii_byte
             for _name, il, ir, fn in _name_il_ir_fns:
-                setattr(self, _name, fn(s[il:ir]))
+                setattr(self, _name, fn(bs[il:ir].decode()))
             return self
         return from_ascii
 
@@ -537,6 +543,9 @@ if __name__ == '__main__':
             self.h.kstnm = 'erm'
             self.assertEqual(self.h._kstnm, 'erm     ')
             self.assertEqual(self.h.kstnm, 'erm')
+            self.h.kstnm = '筑波'
+            self.assertEqual(self.h._kstnm, '筑波  ')
+            self.assertEqual(self.h.kstnm, '筑波')
             self.h.kstnm = ''
             self.assertEqual(self.h._kstnm, '        ')
             self.assertEqual(self.h.kstnm, '')
