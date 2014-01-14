@@ -162,18 +162,21 @@ class MomentTensor(object):
     def ms_rotateion(self):
         return self._sorted_eig(self.mxyz)
 
-    def _sorted_eig(self, m):
+    @classmethod
+    def _sorted_eig(cls, m):
         es, vs = eigh(m)
-        es, is_ = self._sorted_i(es)
+        es, is_ = cls._sorted_i(es)
 
-        return es, transpose(self._update_by_indices(transpose(vs), is_))
+        return es, transpose(cls._update_by_indices(transpose(vs), is_))
 
-    def _update_by_indices(self, xs, is_):
+    @staticmethod
+    def _update_by_indices(xs, is_):
         assert len(xs) == len(is_)
 
         return [xs[i] for i in is_]
 
-    def _sorted_i(self, xs):
+    @staticmethod
+    def _sorted_i(xs):
         sorted_xs = []
         sorted_indices = []
         for i, x in sorted(enumerate(xs), key=operator.itemgetter(1)):
@@ -255,16 +258,19 @@ class MomentTensor(object):
         self.xz = -m1to6[2]
         self.yz = -m1to6[3]
 
-    def _dots(self, *ms):
+    @staticmethod
+    def _dots(*ms):
         return functools.reduce(dot, ms)
 
-    def _rotate_xy(self, theta):
+    @staticmethod
+    def _rotate_xy(theta):
         t = deg2rad(theta)
         return ((cos(t), -sin(t), 0),
                 (sin(t), cos(t), 0),
                 (0, 0, 1))
 
-    def _rotate_xz(self, theta):
+    @staticmethod
+    def _rotate_xz(theta):
         t = deg2rad(theta)
         return ((cos(t), 0, -sin(t)),
                 (0, 1, 0),
