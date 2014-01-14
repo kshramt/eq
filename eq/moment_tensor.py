@@ -14,6 +14,12 @@ class MomentTensor(object):
     Angles are in scale of degree.
     """
 
+    XYZ_SIGN_FROM_RTF = {
+        'r': ('z', +1),
+        't': ('y', -1),
+        'f': ('x', +1),
+    }
+
     _inv_sqrt2 = sqrt(2)/2
     _R_yz_from_xx_zz = dot(((0, -1, 0),
                             (1, 0, 0),
@@ -224,78 +230,6 @@ class MomentTensor(object):
     # rtf
 
     @property
-    def rr(self):
-        return self.zz
-
-    @rr.setter
-    def rr(self, value):
-        self.zz = value
-
-    @property
-    def tt(self):
-        return self.yy
-
-    @tt.setter
-    def tt(self, value):
-        self.yy = value
-
-    @property
-    def ff(self):
-        return self.xx
-
-    @ff.setter
-    def ff(self, value):
-        self.xx = value
-
-    @property
-    def rt(self):
-        return -self.yz
-
-    @rt.setter
-    def rt(self, value):
-        self.yz = -value
-
-    @property
-    def rf(self):
-        return self.xz
-
-    @rf.setter
-    def rf(self, value):
-        self.xz = value
-
-    @property
-    def tf(self):
-        return -self.xy
-
-    @tf.setter
-    def tf(self, value):
-        self.xy = -value
-
-    @property
-    def tr(self):
-        return -self.yz
-
-    @tr.setter
-    def tr(self, value):
-        self.yz = -value
-
-    @property
-    def fr(self):
-        return self.xz
-
-    @fr.setter
-    def fr(self, value):
-        self.xz = value
-
-    @property
-    def ft(self):
-        return -self.xy
-
-    @ft.setter
-    def ft(self, value):
-        self.xy = -value
-
-    @property
     def mrtf(self):
         return ((self.rr, self.rt, self.rf),
                 (self.tr, self.tt, self.tf),
@@ -372,6 +306,18 @@ class MomentTensor(object):
         return ((cos(t), 0, -sin(t)),
                 (0, 1, 0),
                 (sin(t), 0, cos(t)))
+
+    @staticmethod
+    def make_rtf_property(rtf1, rtf2):
+        xyz1, sign1 = MomentTensor.XYZ_SIGN_FROM_RTF[rtf1]
+        xyz2, sign2 = MomentTensor.XYZ_SIGN_FROM_RTF[rtf2]
+        return property(lambda self: sign1*sign2*getattr(self, xyz1 + xyz2),
+                        lambda self, value: setattr(self, xyz1 + xyz2, sign1*sign2*value))
+
+_rtf = MomentTensor.XYZ_SIGN_FROM_RTF.keys()
+for rtf1 in _rtf:
+    for rtf2 in _rtf:
+        setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
 
 
 if __name__ == '__main__':
