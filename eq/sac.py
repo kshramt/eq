@@ -422,7 +422,7 @@ class Meta(object):
         return from_ascii
 
     @staticmethod
-    def make_property(name):
+    def _make_property(name):
         type_ = Meta.TYPE_FROM_NAMES[name]
         _name = Meta._internal_name(name)
         from_ = '_{}_from_internal'.format(type_)
@@ -433,7 +433,7 @@ class Meta(object):
 Meta.from_ascii = Meta._make_from_ascii()
 
 for name in Meta.NAMES:
-    setattr(Meta, name, Meta.make_property(name))
+    setattr(Meta, name, Meta._make_property(name))
 
 class Data(object):
     pass
