@@ -415,8 +415,7 @@ class Meta(object):
             return self
         return from_ascii
 
-Meta.from_ascii = Meta._make_from_ascii()
-for name in Meta.NAMES:
+    @staticmethod
     def make_property(name):
         type_ = Meta.TYPE_FROM_NAMES[name]
         _name = Meta._internal_name(name)
@@ -424,7 +423,11 @@ for name in Meta.NAMES:
         to_ = '_internal_from_{}'.format(type_)
         return property(lambda self: getattr(self, from_)(getattr(self, _name)),
                         lambda self, value: setattr(self, _name, getattr(self, to_)(value)))
-    setattr(Meta, name, make_property(name))
+
+Meta.from_ascii = Meta._make_from_ascii()
+
+for name in Meta.NAMES:
+    setattr(Meta, name, Meta.make_property(name))
 
 class Data(object):
     pass
