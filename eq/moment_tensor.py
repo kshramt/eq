@@ -166,13 +166,11 @@ class MomentTensor(object):
     def _sorted_eig(cls, m):
         es, vs = eigh(m)
         es, is_ = cls._sorted_i(es)
-
         return es, transpose(cls._update_by_indices(transpose(vs), is_))
 
     @staticmethod
     def _update_by_indices(xs, is_):
         assert len(xs) == len(is_)
-
         return [xs[i] for i in is_]
 
     @staticmethod
@@ -280,8 +278,10 @@ class MomentTensor(object):
     def make_rtf_property(rtf1, rtf2):
         xyz1, sign1 = MomentTensor.XYZ_SIGN_FROM_RTF[rtf1]
         xyz2, sign2 = MomentTensor.XYZ_SIGN_FROM_RTF[rtf2]
-        return property(lambda self: sign1*sign2*getattr(self, xyz1 + xyz2),
-                        lambda self, value: setattr(self, xyz1 + xyz2, sign1*sign2*value))
+        xyz = xyz1 + xyz2
+        sign_ = sign1*sign2
+        return property(lambda self: sign_*getattr(self, xyz),
+                        lambda self, value: setattr(self, xyz, sign_*value))
 
 _rtf = MomentTensor.XYZ_SIGN_FROM_RTF.keys()
 for rtf1 in _rtf:
