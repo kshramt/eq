@@ -139,13 +139,13 @@ class Meta(object):
         {'name': 'xmaximum', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'yminimum', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'ymaximum', 'type': 'float', 'eol': False, 'default': None},
-        {'name': 'adjtm', 'type': 'float', 'eol': False, 'default': None}, # fhdr64
-        {'name': 'unused1', 'type': 'float', 'eol': True, 'default': None}, # fhdr65
-        {'name': 'unused2', 'type': 'float', 'eol': False, 'default': None}, # fhdr66
-        {'name': 'unused3', 'type': 'float', 'eol': False, 'default': None}, # fhdr67
-        {'name': 'unused4', 'type': 'float', 'eol': False, 'default': None}, # fhdr68
-        {'name': 'unused5', 'type': 'float', 'eol': False, 'default': None}, # fhdr69
-        {'name': 'unused6', 'type': 'float', 'eol': True, 'default': None}, # fhdr70
+        {'name': 'fhdr64', 'type': 'float', 'eol': False, 'default': None}, # adjtm
+        {'name': 'fhdr65', 'type': 'float', 'eol': True, 'default': None},
+        {'name': 'fhdr66', 'type': 'float', 'eol': False, 'default': None},
+        {'name': 'fhdr67', 'type': 'float', 'eol': False, 'default': None},
+        {'name': 'fhdr68', 'type': 'float', 'eol': False, 'default': None},
+        {'name': 'fhdr69', 'type': 'float', 'eol': False, 'default': None},
+        {'name': 'fhdr70', 'type': 'float', 'eol': True, 'default': None},
         {'name': 'nzyear', 'type': 'integer', 'eol': False, 'default': None},
         {'name': 'nzjday', 'type': 'integer', 'eol': False, 'default': None},
         {'name': 'nzhour', 'type': 'integer', 'eol': False, 'default': None},
@@ -160,11 +160,9 @@ class Meta(object):
         {'name': 'nwfid', 'type': 'integer', 'eol': False, 'default': None},
         {'name': 'nxsize', 'type': 'integer', 'eol': False, 'default': None},
         {'name': 'nysize', 'type': 'integer', 'eol': False, 'default': None},
-        {'name': 'unused7', 'type': 'integer', 'eol': True, 'default': None}, # nhdr56
         {'name': 'iftype', 'type': 'enum', 'eol': False, 'default':None},
         {'name': 'idep', 'type': 'enum', 'eol': False, 'default':None},
         {'name': 'iztype', 'type': 'enum', 'eol': False, 'default':None},
-        {'name': 'unused8', 'type': 'enum', 'eol': False, 'default':None}, # ihdr4
         {'name': 'iinst', 'type': 'enum', 'eol': True, 'default':None},
         {'name': 'istreg', 'type': 'enum', 'eol': False, 'default':None},
         {'name': 'ievreg', 'type': 'enum', 'eol': False, 'default':None},
@@ -173,19 +171,21 @@ class Meta(object):
         {'name': 'isynth', 'type': 'enum', 'eol': True, 'default':None},
         {'name': 'imagtyp', 'type': 'enum', 'eol': False, 'default':None},
         {'name': 'imagsrc', 'type': 'enum', 'eol': False, 'default':None},
-        {'name': 'unused9', 'type': 'enum', 'eol': False, 'default':None}, # ihdr13
-        {'name': 'unused10', 'type': 'enum', 'eol': False, 'default':None}, # ihdr14
-        {'name': 'unused11', 'type': 'enum', 'eol': True, 'default':None}, # ihdr15
-        {'name': 'unused12', 'type': 'enum', 'eol': False, 'default':None}, # ihdr16
-        {'name': 'unused13', 'type': 'enum', 'eol': False, 'default':None}, # ihdr17
-        {'name': 'unused14', 'type': 'enum', 'eol': False, 'default':None}, # ihdr18
-        {'name': 'unused15', 'type': 'enum', 'eol': False, 'default':None}, # ihdr19
-        {'name': 'unused16', 'type': 'enum', 'eol': True, 'default':None}, # ihdr20
+        {'name': 'nhdr56', 'type': 'integer', 'eol': True, 'default': None},
+        {'name': 'ihdr4', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr13', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr14', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr15', 'type': 'enum', 'eol': True, 'default': None},
+        {'name': 'ihdr16', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr17', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr18', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr19', 'type': 'enum', 'eol': False, 'default': None},
+        {'name': 'ihdr20', 'type': 'enum', 'eol': True, 'default': None},
         {'name': 'leven', 'type': 'logical', 'eol': False, 'default': None},
         {'name': 'lpspol', 'type': 'logical', 'eol': False, 'default': None},
         {'name': 'lovrok', 'type': 'logical', 'eol': False, 'default': None},
         {'name': 'lcalda', 'type': 'logical', 'eol': False, 'default': None},
-        {'name': 'unused17', 'type': 'logical', 'eol': True, 'default': None}, # lhdr5
+        {'name': 'lhdr5', 'type': 'logical', 'eol': True, 'default': None},
         {'name': 'kstnm', 'type': 'short_string', 'eol': False, 'default': None},
         {'name': 'kevnm', 'type': 'long_string', 'eol': True, 'default': None},
         {'name': 'khole', 'type': 'short_string', 'eol': False, 'default': None},
@@ -434,6 +434,10 @@ Meta.from_ascii = Meta._make_from_ascii()
 
 for name in Meta.NAMES:
     setattr(Meta, name, Meta._make_property(name))
+# `adjtm` seems not used
+# Meta.adjtm = property(lambda self: self._float_from_internal(self._fhdr64),
+#                       lambda self, value: setattr(self, '_fhdr64', self._internal_from_float(value)))
+
 
 class Data(object):
     pass
