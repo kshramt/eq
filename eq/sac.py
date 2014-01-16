@@ -85,7 +85,7 @@ class Meta(object):
         {'name': 'e', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'o', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'a', 'type': 'float', 'eol': False, 'default': None},
-        {'name': 'internal1', 'type': 'float', 'eol': True, 'default': None}, # fmt
+        {'name': 'fmt', 'type': 'float', 'eol': True, 'default': None},
         {'name': 't0', 'type': 'float', 'eol': False, 'default': None},
         {'name': 't1', 'type': 'float', 'eol': False, 'default': None},
         {'name': 't2', 'type': 'float', 'eol': False, 'default': None},
@@ -130,8 +130,8 @@ class Meta(object):
         {'name': 'az', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'baz', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'gcarc', 'type': 'float', 'eol': False, 'default': None},
-        {'name': 'internal2', 'type': 'float', 'eol': True, 'default': None}, # sb
-        {'name': 'internal3', 'type': 'float', 'eol': False, 'default': None}, # sdelta
+        {'name': 'sb', 'type': 'float', 'eol': True, 'default': None},
+        {'name': 'sdelta', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'depmen', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'cmpaz', 'type': 'float', 'eol': False, 'default': None},
         {'name': 'cmpinc', 'type': 'float', 'eol': False, 'default': None},
