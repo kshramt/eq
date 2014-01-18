@@ -167,10 +167,7 @@ class _FieldProp(object):
         elif prefix == 'l':
             return 'logical'
         elif prefix == 'k':
-            if name == 'kevnm':
-                return 'long_string'
-            else:
-                return 'short_string'
+            return 'short_string'
         else:
             return 'float'
 
@@ -321,7 +318,7 @@ class _Meta(object):
         _FieldProp(name='lcalda'),
         _FieldProp(name='lhdr5', eol=True),
         _FieldProp(name='kstnm'),
-        _FieldProp(name='kevnm', eol=True),
+        _FieldProp(name='kevnm', eol=True, type_='long_string'),
         _FieldProp(name='khole'),
         _FieldProp(name='ko'),
         _FieldProp(name='ka', eol=True),
