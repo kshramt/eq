@@ -17,7 +17,89 @@ FLOAT_MIN = pylab.finfo(FLOAT).min
 FLOAT_MAX = pylab.finfo(FLOAT).max
 
 
-def _convert_from_1(b, a):
+_INTERNAL_BYTES_FROM_TYPE = {
+    'short_string': 8,
+    'long_string': 16,
+}
+_INTERNAL_BYTES_SHORT_STRING = _INTERNAL_BYTES_FROM_TYPE['short_string']
+_INTERNAL_BYTES_LONG_STRING = _INTERNAL_BYTES_FROM_TYPE['long_string']
+
+_ASCII_BYTES_FROM_TYPE = {
+    'logical': 10,
+    'integer': 10,
+    'float': 15,
+    'enum': 10,
+    'short_string': _INTERNAL_BYTES_SHORT_STRING,
+    'long_string': _INTERNAL_BYTES_LONG_STRING,
+}
+_ASCII_BYTES_SHORT_STRING = _ASCII_BYTES_FROM_TYPE['short_string']
+_ASCII_BYTES_LONG_STRING = _ASCII_BYTES_FROM_TYPE['long_string']
+
+_ASCII_FORMAT_FROM_TYPE = {
+    'logical': '{{:>{}d}}'.format(_ASCII_BYTES_FROM_TYPE['logical']),
+    'integer': '{{:>{}d}}'.format(_ASCII_BYTES_FROM_TYPE['integer']),
+    'float': '{{:>#{}.7g}}'.format(_ASCII_BYTES_FROM_TYPE['float']),
+    'enum': '{{:>{}d}}'.format(_ASCII_BYTES_FROM_TYPE['enum']),
+    'short_string': '{:s}', # assume internal values to always have BYTES_SHORT_STRING bytes
+    'long_string': '{:s}', # assume internal values to always have BYTES_LONG_STRING bytes
+}
+_PARSE_ASCII_FROM_TYPE = {
+    'logical': int,
+    'integer': int,
+    'float': float,
+    'enum': int,
+    'short_string': lambda s: s,
+    'long_string': lambda s: s,
+}
+_BINARY_FORMAT_FROM_TYPE = {
+    'logical': 'i',
+    'integer': 'i',
+    'float': 'f',
+    'enum': 'i',
+    'short_string': '{}c'.format(_ASCII_BYTES_SHORT_STRING),
+    'long_string': '{}c'.format(_ASCII_BYTES_LONG_STRING),
+}
+
+
+_UNDEFINED_FROM_TYPE = {
+    'logical': -12345,
+    'integer': -12345,
+    'float': -12345.0,
+    'enum': -12345,
+    'short_string': '-12345  ',
+    'long_string': '-12345          ',
+}
+_UNDEFINED_LOGICAL = _UNDEFINED_FROM_TYPE['logical']
+_UNDEFINED_INTEGER = _UNDEFINED_FROM_TYPE['integer']
+_UNDEFINED_FLOAT = _UNDEFINED_FROM_TYPE['float']
+_UNDEFINED_ENUM = _UNDEFINED_FROM_TYPE['enum']
+_UNDEFINED_SHORT_STRING = _UNDEFINED_FROM_TYPE['short_string']
+_UNDEFINED_LONG_STRING = _UNDEFINED_FROM_TYPE['long_string']
+
+
+_ENUMS = (
+    'itime', 'irlim', 'iamph', 'ixy', 'iunkn',
+    'idisp', 'ivel', 'iacc', 'ib', 'iday',
+    'io', 'ia', 'it0', 'it1', 'it2',
+    'it3', 'it4', 'it5', 'it6', 'it7',
+    'it8', 'it9', 'iradnv', 'itannv', 'iradev',
+    'itanev', 'inorth', 'ieast', 'ihorza', 'idown',
+    'iup', 'illlbb', 'iwwsn1', 'iwwsn2', 'ihglp',
+    'isro', 'inucl', 'ipren', 'ipostn', 'iquake',
+    'ipreq', 'ipostq', 'ichem', 'iother', 'igood',
+    'iglch', 'idrop', 'ilowsn', 'irldta', 'ivolts',
+    'ixyz', 'imb', 'ims', 'iml', 'imw',
+    'imd', 'imx', 'ineic', 'ipde', 'iisc',
+    'ireb', 'iusgs', 'ibrk', 'icaltech', 'illnl',
+    'ievloc', 'ijsop', 'iuser', 'iunknown', 'iqb',
+    'iqb1', 'iqb2', 'iqbx', 'iqmt', 'ieq',
+    'ieq1', 'ieq2', 'ime', 'iex', 'inu',
+    'inc', 'io', 'il', 'ir', 'it',
+    'iu',
+)
+
+
+def _convert_from(b, a):
     def wrapper(f):
         def new_f(x):
             if x == a:
@@ -26,24 +108,11 @@ def _convert_from_1(b, a):
                 return f(x)
         return new_f
     return wrapper
-_none_from_undefined_1 = lambda undefined: _convert_from_1(None, undefined)
-_undefined_from_none_1 = lambda undefined: _convert_from_1(undefined, None)
+_none_from_undefined = lambda undefined: _convert_from(None, undefined)
+_undefined_from_none = lambda undefined: _convert_from(undefined, None)
 
 
-def _convert_from_2(b, a):
-    def wrapper(f):
-        def new_f(x, y):
-            if y == a:
-                return b
-            else:
-                return f(x, y)
-        return new_f
-    return wrapper
-_none_from_undefined_2 = lambda undefined: _convert_from_2(None, undefined)
-_undefined_from_none_2 = lambda undefined: _convert_from_2(undefined, None)
-
-
-def _assert_range_1(lower, upper):
+def _assert_range(lower, upper):
     def wrapper(f):
         def new_f(x):
             assert lower <= x <= upper
@@ -52,93 +121,14 @@ def _assert_range_1(lower, upper):
     return wrapper
 
 
-def _assert_range_2(lower, upper):
-    def wrapper(f):
-        def new_f(x, y):
-            assert lower <= y <= upper
-            return f(x, y)
-        return new_f
-    return wrapper
+def _pad_space(s, n):
+    bs = s.encode()
+    nbs = len(bs)
+    assert nbs <= n
+    return (bs + b' '*(n - nbs)).decode()
 
 
 class FieldProp(object):
-
-    INTERNAL_BYTES_FROM_TYPE = {
-        'short_string': 8,
-        'long_string': 16,
-    }
-    BYTES_SHORT_STRING = INTERNAL_BYTES_FROM_TYPE['short_string']
-    BYTES_LONG_STRING = INTERNAL_BYTES_FROM_TYPE['long_string']
-
-    ASCII_BYTES_FROM_TYPE = {
-        'logical': 10,
-        'integer': 10,
-        'float': 15,
-        'enum': 10,
-        'short_string': BYTES_SHORT_STRING,
-        'long_string': BYTES_LONG_STRING,
-    }
-
-    ASCII_FORMAT_FROM_TYPE = {
-        'logical': '{{:>{}d}}'.format(ASCII_BYTES_FROM_TYPE['logical']),
-        'integer': '{{:>{}d}}'.format(ASCII_BYTES_FROM_TYPE['integer']),
-        'float': '{{:>#{}.7g}}'.format(ASCII_BYTES_FROM_TYPE['float']),
-        'enum': '{{:>{}d}}'.format(ASCII_BYTES_FROM_TYPE['enum']),
-        'short_string': '{:s}', # assume internal values to always have BYTES_SHORT_STRING bytes
-        'long_string': '{:s}', # assume internal values to always have BYTES_LONG_STRING bytes
-    }
-    PARSE_ASCII_FROM_TYPE = {
-        'logical': int,
-        'integer': int,
-        'float': float,
-        'enum': int,
-        'short_string': lambda s: s,
-        'long_string': lambda s: s,
-    }
-    BINARY_FORMAT_FROM_TYPE = {
-        'logical': 'i',
-        'integer': 'i',
-        'float': 'f',
-        'enum': 'i',
-        'short_string': '{}c'.format(BYTES_SHORT_STRING),
-        'long_string': '{}c'.format(BYTES_LONG_STRING),
-    }
-
-    UNDEFINED_FROM_TYPE = {
-        'logical': -12345,
-        'integer': -12345,
-        'float': -12345.0,
-        'enum': -12345,
-        'short_string': '-12345  ',
-        'long_string': '-12345          ',
-    }
-    UNDEFINED_LOGICAL = UNDEFINED_FROM_TYPE['logical']
-    UNDEFINED_INTEGER = UNDEFINED_FROM_TYPE['integer']
-    UNDEFINED_FLOAT = UNDEFINED_FROM_TYPE['float']
-    UNDEFINED_ENUM = UNDEFINED_FROM_TYPE['enum']
-    UNDEFINED_SHORT_STRING = UNDEFINED_FROM_TYPE['short_string']
-    UNDEFINED_LONG_STRING = UNDEFINED_FROM_TYPE['long_string']
-
-    ENUMS = (
-        'itime', 'irlim', 'iamph', 'ixy', 'iunkn',
-        'idisp', 'ivel', 'iacc', 'ib', 'iday',
-        'io', 'ia', 'it0', 'it1', 'it2',
-        'it3', 'it4', 'it5', 'it6', 'it7',
-        'it8', 'it9', 'iradnv', 'itannv', 'iradev',
-        'itanev', 'inorth', 'ieast', 'ihorza', 'idown',
-        'iup', 'illlbb', 'iwwsn1', 'iwwsn2', 'ihglp',
-        'isro', 'inucl', 'ipren', 'ipostn', 'iquake',
-        'ipreq', 'ipostq', 'ichem', 'iother', 'igood',
-        'iglch', 'idrop', 'ilowsn', 'irldta', 'ivolts',
-        'ixyz', 'imb', 'ims', 'iml', 'imw',
-        'imd', 'imx', 'ineic', 'ipde', 'iisc',
-        'ireb', 'iusgs', 'ibrk', 'icaltech', 'illnl',
-        'ievloc', 'ijsop', 'iuser', 'iunknown', 'iqb',
-        'iqb1', 'iqb2', 'iqbx', 'iqmt', 'ieq',
-        'ieq1', 'ieq2', 'ime', 'iex', 'inu',
-        'inc', 'io', 'il', 'ir', 'it',
-        'iu',
-    )
 
     def __init__(self, name, eol=False, default=None):
         self.name = name
@@ -148,10 +138,10 @@ class FieldProp(object):
         self.default = default
         self.value_from_internal = self._value_from_internal(self.type)
         self.internal_from_value = self._internal_from_value(self.type)
-        self.parse_ascii = self.PARSE_ASCII_FROM_TYPE[self.type]
+        self.parse_ascii = _PARSE_ASCII_FROM_TYPE[self.type]
         self.ascii_format = self._ascii_format(self.type, eol)
-        self.n_ascii_bytes = self.ASCII_BYTES_FROM_TYPE[self.type]
-        self.binary_format = self.BINARY_FORMAT_FROM_TYPE[self.type]
+        self.n_ascii_bytes = _ASCII_BYTES_FROM_TYPE[self.type]
+        self.binary_format = _BINARY_FORMAT_FROM_TYPE[self.type]
 
     def to_ascii(self, x):
         return self.ascii_format.format(x)
@@ -163,79 +153,6 @@ class FieldProp(object):
     @classmethod
     def _internal_from_value(cls, t):
         return getattr(cls, '_internal_from_{}'.format(t))
-
-    @staticmethod
-    @_none_from_undefined_1(UNDEFINED_LOGICAL)
-    def _logical_from_internal(n):
-        return n == 1
-
-    @staticmethod
-    @_undefined_from_none_1(UNDEFINED_LOGICAL)
-    def _internal_from_logical(l):
-        if l:
-            return 1
-        else:
-            return 0
-
-    @staticmethod
-    @_none_from_undefined_1(UNDEFINED_INTEGER)
-    def _integer_from_internal(n):
-        return n
-
-    @staticmethod
-    @_undefined_from_none_1(UNDEFINED_INTEGER)
-    @_assert_range_1(INTEGER_MIN, INTEGER_MAX)
-    def _internal_from_integer(n):
-        return n
-
-    @staticmethod
-    @_none_from_undefined_1(UNDEFINED_FLOAT)
-    def _float_from_internal(x):
-        return x
-
-    @staticmethod
-    @_undefined_from_none_1(UNDEFINED_FLOAT)
-    @_assert_range_1(FLOAT_MIN, FLOAT_MAX)
-    def _internal_from_float(x):
-        return x
-
-    @classmethod
-    @_none_from_undefined_2(UNDEFINED_ENUM)
-    @_assert_range_2(1, len(ENUMS))
-    def _enum_from_internal(cls, n):
-        return cls.ENUMS[n - 1]
-
-    @classmethod
-    @_undefined_from_none_2(UNDEFINED_ENUM)
-    def _internal_from_enum(cls, s):
-        return cls.ENUMS.index(s) + 1
-
-    @staticmethod
-    @_none_from_undefined_1(UNDEFINED_SHORT_STRING)
-    def _short_string_from_internal(s):
-        return s.rstrip()
-
-    @classmethod
-    @_undefined_from_none_2(UNDEFINED_SHORT_STRING)
-    def _internal_from_short_string(cls, s):
-        return cls._pad_space(s, cls.BYTES_SHORT_STRING)
-
-    @staticmethod
-    @_none_from_undefined_1(UNDEFINED_LONG_STRING)
-    def _long_string_from_internal(s):
-        return s.rstrip()
-
-    @classmethod
-    @_undefined_from_none_2(UNDEFINED_LONG_STRING)
-    def _internal_from_long_string(cls, s):
-        return cls._pad_space(s, cls.BYTES_LONG_STRING)
-
-    @staticmethod
-    def _pad_space(s, n):
-        bs = s.encode()
-        nbs = len(bs)
-        assert nbs <= n
-        return (bs + b' '*(n - nbs)).decode()
 
     @staticmethod
     def _type(name):
@@ -256,10 +173,35 @@ class FieldProp(object):
 
     @classmethod
     def _ascii_format(cls, type, eol):
-        ret = cls.ASCII_FORMAT_FROM_TYPE[type]
+        ret = _ASCII_FORMAT_FROM_TYPE[type]
         if eol:
             ret += '\n'
         return ret
+
+for _t, _from_internal, _to_internal in (('logical',
+                                          lambda n: n == 1,
+                                          lambda l: 1 if l else 0),
+                                         ('integer',
+                                          lambda n: n,
+                                          _assert_range(INTEGER_MIN, INTEGER_MAX)(lambda n: n)),
+                                         ('float',
+                                          lambda x: x,
+                                          _assert_range(FLOAT_MIN, FLOAT_MAX)(lambda x: x)),
+                                         ('enum',
+                                          _assert_range(1, len(_ENUMS))(lambda n: _ENUMS[n - 1]),
+                                          lambda s: _ENUMS.index(s) + 1),
+                                         ('short_string',
+                                          lambda s: s.rstrip(),
+                                          lambda s: _pad_space(s, _INTERNAL_BYTES_SHORT_STRING)),
+                                         ('long_string',
+                                          lambda s: s.rstrip(),
+                                          lambda s: _pad_space(s, _INTERNAL_BYTES_LONG_STRING))):
+    setattr(FieldProp,
+            '_{}_from_internal'.format(_t),
+            staticmethod(_none_from_undefined(_UNDEFINED_FROM_TYPE[_t])(_from_internal)))
+    setattr(FieldProp,
+            '_internal_from_{}'.format(_t),
+            staticmethod(_undefined_from_none(_UNDEFINED_FROM_TYPE[_t])(_to_internal)))
 
 
 class Meta(object):
@@ -551,7 +493,7 @@ if __name__ == '__main__':
             self.assertAlmostEqual(self.h._delta, 1.0)
             self.assertAlmostEqual(self.h.delta, 1.0)
             self.h.delta = None
-            self.assertAlmostEqual(self.h._delta, FieldProp.UNDEFINED_FLOAT)
+            self.assertAlmostEqual(self.h._delta, _UNDEFINED_FLOAT)
             self.assertTrue(self.h.delta is None)
             with self.assertRaises(AssertionError):
                 self.h.delta = 2*FLOAT_MIN
@@ -562,7 +504,7 @@ if __name__ == '__main__':
             self.assertEqual(self.h._nzyear, 2)
             self.assertEqual(self.h.nzyear, 2)
             self.h.nzyear = None
-            self.assertEqual(self.h._nzyear, FieldProp.UNDEFINED_INTEGER)
+            self.assertEqual(self.h._nzyear, _UNDEFINED_INTEGER)
             self.assertEqual(self.h.nzyear, None)
             with self.assertRaises(AssertionError):
                 self.h.nzyear = 2*INTEGER_MIN
@@ -573,14 +515,14 @@ if __name__ == '__main__':
             self.assertEqual(self.h._iftype, 85)
             self.assertEqual(self.h.iftype, 'it')
             self.h.iftype = None
-            self.assertEqual(self.h._iftype, FieldProp.UNDEFINED_ENUM)
+            self.assertEqual(self.h._iftype, _UNDEFINED_ENUM)
             self.assertEqual(self.h.iftype, None)
             with self.assertRaises(Exception):
                 self.h.iftype = 'not_member_of_enums'
             self.h._iftype = 0
             with self.assertRaises(AssertionError):
                 self.h.iftype
-            self.h._iftype = len(FieldProp.ENUMS) + 1
+            self.h._iftype = len(_ENUMS) + 1
             with self.assertRaises(Exception):
                 self.h.iftype
 
@@ -591,7 +533,7 @@ if __name__ == '__main__':
             self.assertEqual(self.h._leven, 0)
             self.assertEqual(self.h.leven, False)
             self.h.leven = None
-            self.assertEqual(self.h._leven, FieldProp.UNDEFINED_LOGICAL)
+            self.assertEqual(self.h._leven, _UNDEFINED_LOGICAL)
             self.assertEqual(self.h.leven, None)
 
             self.h.kstnm = 'erm'
@@ -604,7 +546,7 @@ if __name__ == '__main__':
             self.assertEqual(self.h._kstnm, '        ')
             self.assertEqual(self.h.kstnm, '')
             self.h.kstnm = None
-            self.assertEqual(self.h._kstnm, FieldProp.UNDEFINED_SHORT_STRING)
+            self.assertEqual(self.h._kstnm, _UNDEFINED_SHORT_STRING)
             self.assertEqual(self.h.kstnm, None)
             with self.assertRaises(AssertionError):
                 self.h.kstnm = '123456789'
@@ -616,7 +558,7 @@ if __name__ == '__main__':
             self.assertEqual(self.h._kevnm, ' '*16)
             self.assertEqual(self.h.kevnm, '')
             self.h.kevnm = None
-            self.assertEqual(self.h._kevnm, FieldProp.UNDEFINED_LONG_STRING)
+            self.assertEqual(self.h._kevnm, _UNDEFINED_LONG_STRING)
             self.assertEqual(self.h.kevnm, None)
             with self.assertRaises(AssertionError):
                 self.h.kevnm = '0123456789abcdefg'
