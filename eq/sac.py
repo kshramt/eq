@@ -130,18 +130,21 @@ def _pad_space(s, n):
 
 class _FieldProp(object):
 
-    def __init__(self, name, eol=False, default=None):
+    def __init__(self, name, eol=False, default=None, type_=None):
         self.name = name
         self._name = '_' + self.name
-        self.type = self._type(self.name)
+        if type_ is None:
+            self.type_ = self._type(self.name)
+        else:
+            self.type_ = type_
         self.eol = eol
         self.default = default
-        self.value_from_internal = self._value_from_internal(self.type)
-        self.internal_from_value = self._internal_from_value(self.type)
-        self.parse_ascii = _PARSE_ASCII_FROM_TYPE[self.type]
-        self.ascii_format = self._ascii_format(self.type, eol)
-        self.n_ascii_bytes = _ASCII_BYTES_FROM_TYPE[self.type]
-        self.binary_format = _BINARY_FORMAT_FROM_TYPE[self.type]
+        self.value_from_internal = self._value_from_internal(self.type_)
+        self.internal_from_value = self._internal_from_value(self.type_)
+        self.parse_ascii = _PARSE_ASCII_FROM_TYPE[self.type_]
+        self.ascii_format = self._ascii_format(self.type_, eol)
+        self.n_ascii_bytes = _ASCII_BYTES_FROM_TYPE[self.type_]
+        self.binary_format = _BINARY_FORMAT_FROM_TYPE[self.type_]
 
     def to_ascii(self, x):
         return self.ascii_format.format(x)
@@ -371,7 +374,7 @@ class _Meta(object):
     def to_binary(self):
         vs = []
         for field in self.FIELDS:
-            t = field.type
+            t = field.type_
             v = getattr(self, field._name)
             if t == 'short_string' or t == 'long_string':
                 bytes_ = v.encode()
@@ -384,7 +387,7 @@ class _Meta(object):
     def _from_meta_list(self, vs):
         iv = 0
         for field in self.FIELDS:
-            t = field.type
+            t = field.type_
             _name = field._name
             if t == 'short_string' or t == 'long_string':
                 iv_next = iv + self.INTERNAL_BYTES_FROM_TYPE[t]
