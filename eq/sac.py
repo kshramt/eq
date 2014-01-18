@@ -204,7 +204,7 @@ for _t, _from_internal, _to_internal in (('logical',
             staticmethod(_undefined_from_none(_UNDEFINED_FROM_TYPE[_t])(_to_internal)))
 
 
-class Meta(object):
+class _Meta(object):
 
     FIELDS = (
         _FieldProp(name='delta'),
@@ -421,12 +421,12 @@ class Meta(object):
         return property(lambda self: field.value_from_internal(getattr(self, field._name)),
                         lambda self, value: setattr(self, field._name, field.internal_from_value(value)))
 
-Meta.from_ascii = Meta._make_from_ascii()
+_Meta.from_ascii = _Meta._make_from_ascii()
 
-for field in Meta.FIELDS:
-    setattr(Meta, field.name, Meta._make_property(field))
+for field in _Meta.FIELDS:
+    setattr(_Meta, field.name, _Meta._make_property(field))
 # `adjtm` seems not used
-# Meta.adjtm = property(lambda self: self._float_from_internal(self._fhdr64),
+# _Meta.adjtm = property(lambda self: self._float_from_internal(self._fhdr64),
 #                       lambda self, value: setattr(self, '_fhdr64', self._internal_from_float(value)))
 
 
@@ -448,10 +448,10 @@ if __name__ == '__main__':
     class Tester(unittest.TestCase):
 
         def setUp(self):
-            self.h = Meta()
+            self.h = _Meta()
 
         def test_ascii(self):
-            self.assertEqual(self.h.to_ascii(), Meta().from_ascii(self.h.to_ascii()).to_ascii())
+            self.assertEqual(self.h.to_ascii(), _Meta().from_ascii(self.h.to_ascii()).to_ascii())
             s = """\
       -12345.00      -12345.00      -12345.00      -12345.00      -12345.00
       -12345.00      -12345.00      -12345.00      -12345.00      -12345.00
