@@ -3,18 +3,18 @@
 - [SAC User Manual/SAC Data Format](http://www.iris.edu/software/sac/manual/file_format.html)
 """
 
-import struct
+import struct as _struct
 
-import pylab
 
-FLOAT = pylab.float32
-INTEGER = pylab.int32
-COMPLEX = pylab.complex64
+_FLOAT = _pylab.float32
+_INTEGER = _pylab.int32
+_COMPLEX = _pylab.complex64
 
-INTEGER_MIN = pylab.iinfo(INTEGER).min
-INTEGER_MAX = pylab.iinfo(INTEGER).max
-FLOAT_MIN = pylab.finfo(FLOAT).min
-FLOAT_MAX = pylab.finfo(FLOAT).max
+
+_INTEGER_MIN = _pylab.iinfo(_INTEGER).min
+_INTEGER_MAX = _pylab.iinfo(_INTEGER).max
+_FLOAT_MIN = _pylab.finfo(_FLOAT).min
+_FLOAT_MAX = _pylab.finfo(_FLOAT).max
 
 
 _INTERNAL_BYTES_FROM_TYPE = {
@@ -183,10 +183,10 @@ for _t, _from_internal, _to_internal in (('logical',
                                           lambda l: 1 if l else 0),
                                          ('integer',
                                           lambda n: n,
-                                          _assert_range(INTEGER_MIN, INTEGER_MAX)(lambda n: n)),
+                                          _assert_range(_INTEGER_MIN, _INTEGER_MAX)(lambda n: n)),
                                          ('float',
                                           lambda x: x,
-                                          _assert_range(FLOAT_MIN, FLOAT_MAX)(lambda x: x)),
+                                          _assert_range(_FLOAT_MIN, _FLOAT_MAX)(lambda x: x)),
                                          ('enum',
                                           _assert_range(1, len(_ENUMS))(lambda n: _ENUMS[n - 1]),
                                           lambda s: _ENUMS.index(s) + 1),
@@ -366,7 +366,7 @@ class _Meta(object):
         return ''.join(field.to_ascii(getattr(self, field._name)) for field in self.FIELDS)
 
     def from_binary(self, b):
-        return self._from_meta_list(struct.unpack(self.BINARY_FORMAT, b))
+        return self._from_meta_list(_struct.unpack(self.BINARY_FORMAT, b))
 
     def to_binary(self):
         vs = []
@@ -379,7 +379,7 @@ class _Meta(object):
                     vs.append(bytes_[i:i+1])
             else:
                 vs.append(v)
-        return struct.pack(self.BINARY_FORMAT, *vs)
+        return _struct.pack(self.BINARY_FORMAT, *vs)
 
     def _from_meta_list(self, vs):
         iv = 0
@@ -423,8 +423,8 @@ class _Meta(object):
 
 _Meta.from_ascii = _Meta._make_from_ascii()
 
-for field in _Meta.FIELDS:
-    setattr(_Meta, field.name, _Meta._make_property(field))
+for _field in _Meta.FIELDS:
+    setattr(_Meta, _field.name, _Meta._make_property(_field))
 # `adjtm` seems not used
 # _Meta.adjtm = property(lambda self: self._float_from_internal(self._fhdr64),
 #                       lambda self, value: setattr(self, '_fhdr64', self._internal_from_float(value)))
@@ -496,9 +496,9 @@ if __name__ == '__main__':
             self.assertAlmostEqual(self.h._delta, _UNDEFINED_FLOAT)
             self.assertTrue(self.h.delta is None)
             with self.assertRaises(AssertionError):
-                self.h.delta = 2*FLOAT_MIN
+                self.h.delta = 2*_FLOAT_MIN
             with self.assertRaises(AssertionError):
-                self.h.delta = 2*FLOAT_MAX
+                self.h.delta = 2*_FLOAT_MAX
 
             self.h.nzyear = 2
             self.assertEqual(self.h._nzyear, 2)
@@ -507,9 +507,9 @@ if __name__ == '__main__':
             self.assertEqual(self.h._nzyear, _UNDEFINED_INTEGER)
             self.assertEqual(self.h.nzyear, None)
             with self.assertRaises(AssertionError):
-                self.h.nzyear = 2*INTEGER_MIN
+                self.h.nzyear = 2*_INTEGER_MIN
             with self.assertRaises(AssertionError):
-                self.h.nzyear = 2*FLOAT_MAX
+                self.h.nzyear = 2*_FLOAT_MAX
 
             self.h.iftype = 'it'
             self.assertEqual(self.h._iftype, 85)
