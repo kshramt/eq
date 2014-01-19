@@ -362,7 +362,7 @@ class _Meta(object):
             setattr(self, name, value)
         return self
 
-    def to_ascii(self):
+    def __str__(self):
         return ''.join(field.to_ascii(getattr(self, field._name)) for field in self.FIELDS)
 
     def from_binary(self, b):
@@ -451,7 +451,7 @@ if __name__ == '__main__':
             self.h = _Meta()
 
         def test_ascii(self):
-            self.assertEqual(self.h.to_ascii(), _Meta().from_ascii(self.h.to_ascii()).to_ascii())
+            self.assertEqual(str(self.h), str(_Meta().from_ascii(str(self.h))))
             s = """\
       -12345.00      -12345.00      -12345.00      -12345.00      -12345.00
       -12345.00      -12345.00      -12345.00      -12345.00      -12345.00
@@ -484,7 +484,7 @@ if __name__ == '__main__':
 -12345  -12345  -12345  
 -12345  -12345  -12345  
 """
-            self.assertEqual(self.h.to_ascii(), s)
+            self.assertEqual(str(self.h), s)
             with self.assertRaises(AssertionError):
                 self.h.from_ascii('too short')
 
