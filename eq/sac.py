@@ -5,6 +5,16 @@
 
 import struct as _struct
 
+import pylab as _pylab
+
+class Error(Exception):
+    pass
+
+
+def error(cond, msg):
+    if not cond:
+        raise Error(msg)
+
 
 _FLOAT = _pylab.float32
 _INTEGER = _pylab.int32
@@ -16,6 +26,7 @@ _INTEGER_MAX = _pylab.iinfo(_INTEGER).max
 _FLOAT_MIN = _pylab.finfo(_FLOAT).min
 _FLOAT_MAX = _pylab.finfo(_FLOAT).max
 
+_BINARY_MODE = '='
 
 _INTERNAL_BYTES_FROM_TYPE = {
     'short_string': 8,
@@ -32,6 +43,7 @@ _ASCII_BYTES_FROM_TYPE = {
     'short_string': _INTERNAL_BYTES_SHORT_STRING,
     'long_string': _INTERNAL_BYTES_LONG_STRING,
 }
+
 _ASCII_BYTES_SHORT_STRING = _ASCII_BYTES_FROM_TYPE['short_string']
 _ASCII_BYTES_LONG_STRING = _ASCII_BYTES_FROM_TYPE['long_string']
 
@@ -56,8 +68,8 @@ _BINARY_FORMAT_FROM_TYPE = {
     'integer': 'i',
     'float': 'f',
     'enum': 'i',
-    'short_string': '{}c'.format(_ASCII_BYTES_SHORT_STRING),
-    'long_string': '{}c'.format(_ASCII_BYTES_LONG_STRING),
+    'short_string': '{}s'.format(_ASCII_BYTES_SHORT_STRING),
+    'long_string': '{}s'.format(_ASCII_BYTES_LONG_STRING),
 }
 
 
@@ -99,6 +111,10 @@ _ENUMS = (
 )
 
 
+def from_(x):
+    return Sac().from_(x)
+
+
 def _convert_from(b, a):
     def wrapper(f):
         def new_f(x):
@@ -128,6 +144,14 @@ def _pad_space(s, n):
     return (bs + b' '*(n - nbs)).decode()
 
 
+def _assert_floats(xs):
+    assert _pylab.all(_FLOAT_MIN <= xs) and _pylab.all(xs <= _FLOAT_MAX)
+    return xs
+
+def _identity(x):
+    return x
+
+
 class _FieldProp(object):
 
     def __init__(self, name, eol=False, default=None, type_=None):
@@ -139,8 +163,10 @@ class _FieldProp(object):
             self.type_ = type_
         self.eol = eol
         self.default = default
-        self.value_from_internal = self._value_from_internal(self.type_)
-        self.internal_from_value = self._internal_from_value(self.type_)
+        self.value_from_internal = getattr(self, '_{}_value_from_internal'.format(self.type_))
+        self.internal_from_value = getattr(self, '_internal_from_{}_value'.format(self.type_))
+        self.pack_value_from_internal = getattr(self, '_{}_pack_value_from_internal'.format(self.type_))
+        self.internal_from_unpacked = getattr(self, '_internal_from_unpacked_{}'.format(self.type_))
         self.parse_ascii = _PARSE_ASCII_FROM_TYPE[self.type_]
         self.ascii_format = self._ascii_format(self.type_, eol)
         self.n_ascii_bytes = _ASCII_BYTES_FROM_TYPE[self.type_]
@@ -148,14 +174,6 @@ class _FieldProp(object):
 
     def to_ascii(self, x):
         return self.ascii_format.format(x)
-
-    @classmethod
-    def _value_from_internal(cls, t):
-        return getattr(cls, '_{}_from_internal'.format(t))
-
-    @classmethod
-    def _internal_from_value(cls, t):
-        return getattr(cls, '_internal_from_{}'.format(t))
 
     @staticmethod
     def _type(name):
@@ -178,30 +196,53 @@ class _FieldProp(object):
             ret += '\n'
         return ret
 
-for _t, _from_internal, _to_internal in (('logical',
-                                          lambda n: n == 1,
-                                          lambda l: 1 if l else 0),
-                                         ('integer',
-                                          lambda n: n,
-                                          _assert_range(_INTEGER_MIN, _INTEGER_MAX)(lambda n: n)),
-                                         ('float',
-                                          lambda x: x,
-                                          _assert_range(_FLOAT_MIN, _FLOAT_MAX)(lambda x: x)),
-                                         ('enum',
-                                          _assert_range(1, len(_ENUMS))(lambda n: _ENUMS[n - 1]),
-                                          lambda s: _ENUMS.index(s) + 1),
-                                         ('short_string',
-                                          lambda s: s.rstrip(),
-                                          lambda s: _pad_space(s, _INTERNAL_BYTES_SHORT_STRING)),
-                                         ('long_string',
-                                          lambda s: s.rstrip(),
-                                          lambda s: _pad_space(s, _INTERNAL_BYTES_LONG_STRING))):
+
+for (_t,
+     _value_from_internal,
+     _internal_from_value,
+     _pack_value_from_internal,
+     _internal_from_unpacked) in (('logical',
+                                   lambda n: n == 1,
+                                   lambda l: 1 if l else 0,
+                                   _identity,
+                                   _identity),
+                                  ('integer',
+                                   _identity,
+                                   _assert_range(_INTEGER_MIN, _INTEGER_MAX)(_identity),
+                                   _identity,
+                                   _identity),
+                                  ('float',
+                                   _identity,
+                                   _assert_range(_FLOAT_MIN, _FLOAT_MAX)(_identity),
+                                   _identity,
+                                   _identity),
+                                  ('enum',
+                                   _assert_range(1, len(_ENUMS))(lambda n: _ENUMS[n - 1]),
+                                   lambda s: _ENUMS.index(s) + 1,
+                                   _identity,
+                                   _identity),
+                                  ('short_string',
+                                   lambda s: s.rstrip(),
+                                   lambda s: _pad_space(s, _INTERNAL_BYTES_SHORT_STRING),
+                                   lambda s: s.encode(),
+                                   lambda b: b.decode()),
+                                  ('long_string',
+                                   lambda s: s.rstrip(),
+                                   lambda s: _pad_space(s, _INTERNAL_BYTES_LONG_STRING),
+                                   lambda s: s.encode(),
+                                   lambda b: b.decode())):
     setattr(_FieldProp,
-            '_{}_from_internal'.format(_t),
-            staticmethod(_none_from_undefined(_UNDEFINED_FROM_TYPE[_t])(_from_internal)))
+            '_{}_value_from_internal'.format(_t),
+            staticmethod(_none_from_undefined(_UNDEFINED_FROM_TYPE[_t])(_value_from_internal)))
     setattr(_FieldProp,
-            '_internal_from_{}'.format(_t),
-            staticmethod(_undefined_from_none(_UNDEFINED_FROM_TYPE[_t])(_to_internal)))
+            '_internal_from_{}_value'.format(_t),
+            staticmethod(_undefined_from_none(_UNDEFINED_FROM_TYPE[_t])(_internal_from_value)))
+    setattr(_FieldProp,
+            '_{}_pack_value_from_internal'.format(_t),
+            staticmethod(_pack_value_from_internal))
+    setattr(_FieldProp,
+            '_internal_from_unpacked_{}'.format(_t),
+            staticmethod(_internal_from_unpacked))
 
 
 class _Meta(object):
@@ -283,7 +324,7 @@ class _Meta(object):
         _FieldProp(name='nzmin'),
         _FieldProp(name='nzsec', eol=True),
         _FieldProp(name='nzmsec'),
-        _FieldProp(name='nvhdr'),
+        _FieldProp(name='nvhdr', default=6),
         _FieldProp(name='norid'),
         _FieldProp(name='nevid'),
         _FieldProp(name='npts', eol=True),
@@ -314,7 +355,7 @@ class _Meta(object):
         _FieldProp(name='ihdr20', eol=True),
         _FieldProp(name='leven'),
         _FieldProp(name='lpspol'),
-        _FieldProp(name='lovrok'),
+        _FieldProp(name='lovrok', default=True),
         _FieldProp(name='lcalda'),
         _FieldProp(name='lhdr5', eol=True),
         _FieldProp(name='kstnm'),
@@ -343,60 +384,41 @@ class _Meta(object):
     )
 
     NAMES = tuple(f.name for f in FIELDS)
-    BINARY_FORMAT = ''.join(field.binary_format for field in FIELDS)
+    BINARY_FORMAT = _BINARY_MODE + ''.join(field.binary_format for field in FIELDS)
+    BYTES_BINARY_FORMAT = _struct.calcsize(BINARY_FORMAT)
+    BYTES_ASCII_FORMAT = sum(_ASCII_BYTES_FROM_TYPE[field.type_] + (1 if field.eol else 0)
+                             for field
+                             in FIELDS)
 
     def __init__(self):
         for field in self.FIELDS:
             setattr(self, field.name, field.default)
 
     def from_dict(self, d):
-        self.from_list(d[name] for name in self.NAMES)
+        for field in self.FIELDS:
+            name = field.name
+            setattr(self, name, d[name])
         return self
 
     def to_dict(self):
         return {name: getattr(self, name) for name in self.NAMES}
 
-    def from_list(self, vs):
-        assert len(vs) == len(self.NAMES)
-        for name, value in zip(self.NAMES, vs):
-            setattr(self, name, value)
-        return self
-
     def __str__(self):
         return ''.join(field.to_ascii(getattr(self, field._name)) for field in self.FIELDS)
 
-    def from_binary(self, b):
-        return self._from_meta_list(_struct.unpack(self.BINARY_FORMAT, b))
-
-    def to_binary(self):
-        vs = []
-        for field in self.FIELDS:
-            t = field.type_
-            v = getattr(self, field._name)
-            if t == 'short_string' or t == 'long_string':
-                bytes_ = v.encode()
-                for i in range(len(bytes_)):
-                    vs.append(bytes_[i:i+1])
-            else:
-                vs.append(v)
-        return _struct.pack(self.BINARY_FORMAT, *vs)
-
-    def _from_meta_list(self, vs):
-        iv = 0
-        for field in self.FIELDS:
-            t = field.type_
-            _name = field._name
-            if t == 'short_string' or t == 'long_string':
-                iv_next = iv + self.INTERNAL_BYTES_FROM_TYPE[t]
-                setattr(self, _name, b''.join(vs[iv:iv_next]).decode('utf-8'))
-                iv = iv_next
-            else:
-                setattr(self, _name, vs[iv])
-                iv += 1
+    def from_bytes(self, b):
+        for field, value in zip(self.FIELDS, _struct.unpack(self.BINARY_FORMAT, b)):
+            setattr(self, field._name, self.internal_from_unpacked(value))
         return self
 
+    def __bytes__(self):
+        return _struct.pack(self.BINARY_FORMAT,
+                            *(field.pack_value_from_internal(getattr(self, field._name))
+                              for field
+                              in self.FIELDS))
+
     @classmethod
-    def _make_from_ascii(cls):
+    def _make_from_str(cls):
         _name_il_ir_fns = []
         il = 0
         for field in cls.FIELDS:
@@ -406,22 +428,22 @@ class _Meta(object):
             if field.eol:
                 ir = il + 1
                 il = ir
-        ascii_byte = ir
+        n_ascii_bytes = ir
 
-        def from_ascii(self, s):
+        def from_str(self, s):
             bs = s.encode()
-            assert len(bs) == ascii_byte
+            assert len(bs) == n_ascii_bytes
             for _name, il, ir, fn in _name_il_ir_fns:
                 setattr(self, _name, fn(bs[il:ir].decode()))
             return self
-        return from_ascii
+        return from_str
 
     @staticmethod
     def _make_property(field):
         return property(lambda self: field.value_from_internal(getattr(self, field._name)),
                         lambda self, value: setattr(self, field._name, field.internal_from_value(value)))
 
-_Meta.from_ascii = _Meta._make_from_ascii()
+_Meta.from_str = _Meta._make_from_str()
 
 for _field in _Meta.FIELDS:
     setattr(_Meta, _field.name, _Meta._make_property(_field))
@@ -430,20 +452,143 @@ for _field in _Meta.FIELDS:
 #                       lambda self, value: setattr(self, '_fhdr64', self._internal_from_float(value)))
 
 
-class Data(object):
-    pass
-
-
 class Sac(object):
-    def __init__(self):
-        self._meta = Meta()
-        self._data = Data()
-    pass
+
+    BINARY_FORMAT = 'f'
+    BYTES_BINARY_FORMAT = _struct.calcsize(BINARY_FORMAT)
+    BYTES_ASCII_FORMAT = _ASCII_BYTES_FROM_TYPE['float']
+    ASCII_FORMAT = _ASCII_FORMAT_FROM_TYPE['float']
+    N_COLUMN = 5
+
+    def __init__(self, x=None):
+        self.from_(x)
+
+    @property
+    def data(self):
+        return getattr(self, '_{}_from_internal'.format(self.meta.iftype))(self._data)
+
+    @data.setter
+    def data(self, xs):
+        self._data = getattr(self, '_internal_from_{}'.format(self.meta.iftype))(xs)
+
+    def __str__(self):
+        ss = []
+        for i, x in enumerate(self._data):
+            ss.append(self.ASCII_FORMAT.format(x))
+            if i%self.N_COLUMN == self.N_COLUMN - 1:
+                ss.append('\n')
+        return str(self.meta) + ''.join(ss)
+
+    def __bytes__(self):
+        return bytes(self.meta) + _struct.pack('{}{}{}'.format(_BINARY_MODE,
+                                                               len(self._data),
+                                                               self.BINARY_FORMAT),
+                                               *self._data)
+
+    def from_(self, x):
+        if x is None:
+            self.meta = _Meta()
+            self._data = []
+        elif isinstance(x, (bytes, bytearray)):
+            self.from_bytes(x)
+        elif isinstance(x, str):
+            self.from_str(x)
+        elif isinstance(x, dict):
+            self.from_dict(x)
+        else:
+            raise Error('no method to convert {}'.format(type(x)))
+        return self
+
+    def from_bytes(self, b):
+        self.meta = _Meta().from_bytes(b[:_Meta.BYTES_BINARY_FORMAT])
+        bytes_data = len(b) - _Meta.BYTES_BINARY_FORMAT
+        assert bytes_data%self.BYTES_BINARY_FORMAT == 0
+        self._data = _struct.unpack('{}{}{}'.format(_BINARY_MODE,
+                                                    bytes_data//self.BYTES_BINARY_FORMAT,
+                                                    self.BINARY_FORMAT),
+                                    b[_Meta.BYTES_BINARY_FORMAT:])
+        return self
+
+    def from_str(self, s):
+        b = s.encode()
+        self.meta = _Meta().from_str(b[:_Meta.BYTES_ASCII_FORMAT].decode())
+        clean_data = b[_Meta.BYTES_ASCII_FORMAT:].translate(None, b'\n')
+        bytes_clean_data = len(clean_data)
+        assert pp(bytes_clean_data)%pp(self.BYTES_ASCII_FORMAT) == 0
+        self._data = _FLOAT([clean_data[i*self.BYTES_ASCII_FORMAT:(i+1)*self.BYTES_ASCII_FORMAT]
+                            for i
+                            in range(bytes_clean_data//self.BYTES_ASCII_FORMAT)])
+        return self
+
+    def from_dict(self, d):
+        self.meta.from_dict(d['meta'])
+        self.data = d['data']
+        return self
+
+    def to_dict(self):
+        return {'meta': self.meta.to_dict(),
+                'data': list(self._data)}
+
+    @staticmethod
+    def _itime_from_internal(xs):
+        """
+        [y1, y2, ...] -> [y1, y2, ...]
+        """
+        return xs
+
+    @staticmethod
+    def _internal_from_itime(xs):
+        return _assert_floats(xs)
+
+    @staticmethod
+    def _ixy_from_internal(xs):
+        """
+        [y1, y2, ..., x1, x2, ...] -> [[x1, y1], [x2, y2], ...]
+        """
+        n_xs = len(xs)
+        assert n_xs%2 == 0
+        return _pylab.transpose(_pylab.reshape(xs, (2, n_xs//2))[::-1])
+
+    @staticmethod
+    def _internal_from_ixy(xys):
+        n_row, n_column = _pylab.shape(xys)
+        assert n_column == 2
+        return _pylab.reshape(_pylab.transpose(_assert_floats(xys))[::-1],
+                              (n_row*n_column,))
+
+    @staticmethod
+    def _iamph_from_internal(xs):
+        """
+        [r1, r2, ..., θ1, θ2, ...] -> [complex(r1*cos(θ1), r1*sin(θ1)), complex(r2*cos(θ2), r2*sin(θ2)), ...]
+        """
+        n_xs = len(xs)
+        assert n_xs%2 == 0
+        rs = xs[:n_xs//2]
+        ts = xs[n_xs//2:]
+        return rs*_pylab.exp(1j*ts)
+
+    @staticmethod
+    def _internal_from_iamph(cs):
+        rs = _pylab.absolute(cs)
+        ts = _pylab.angle(cs)
+        return _assert_floats(_pylab.concatenate((rs, ts)))
+
+    @staticmethod
+    def _irlim_from_internal(xs):
+        """
+        [r1, r2, ..., i1, i2, ...] -> [complex(r1, i1), complex(r2, i2), ...]
+        """
+        n_xs = len(xs)
+        assert(n_xs%2 == 0)
+        return xs[:n_xs//2] + 1j*xs[n_xs//2:]
+
+    @staticmethod
+    def _internal_from_irlim(cs):
+        return _assert_floats(_pylab.concatenate((_pylab.real(cs), _pylab.imag(cs))))
+
 
 if __name__ == '__main__':
     import unittest
-    from random import randint
-
 
     class Tester(unittest.TestCase):
 
@@ -451,7 +596,7 @@ if __name__ == '__main__':
             self.h = _Meta()
 
         def test_ascii(self):
-            self.assertEqual(str(self.h), str(_Meta().from_ascii(str(self.h))))
+            self.assertEqual(str(self.h), str(_Meta().from_str(str(self.h))))
             s = """\
       -12345.00      -12345.00      -12345.00      -12345.00      -12345.00
       -12345.00      -12345.00      -12345.00      -12345.00      -12345.00
@@ -484,9 +629,11 @@ if __name__ == '__main__':
 -12345  -12345  -12345  
 -12345  -12345  -12345  
 """
+            self.h.lovrok = None
+            self.h.nvhdr = None
             self.assertEqual(str(self.h), s)
             with self.assertRaises(AssertionError):
-                self.h.from_ascii('too short')
+                self.h.from_str('too short')
 
         def test_internal_converters(self):
             self.h.delta = 1.0
