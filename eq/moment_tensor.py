@@ -42,9 +42,8 @@ class MomentTensor(object):
         self.xz = 0
         self.yz = 0
 
-    def __repr__(self):
-        return '{cls}: {mxyz}'.format(cls=self.__class__,
-                                      mxyz=self.mxyz)
+    def __str__(self):
+        return 'xx:{}\tyy:{}\tzz:{}\txy:{}\txz:{}\tyz:{}'.format(self.xx, self.yy, self.zz, self.xy, self.xz, self.yz)
 
     @property
     def moment(self):
