@@ -6,6 +6,8 @@ from random import random
 from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
 # from kshramt import pp
 
+_SQRT2 = sqrt(2)
+_INV_SQRT2 = _SQRT2/2
 
 class MomentTensor(object):
     """
@@ -20,13 +22,12 @@ class MomentTensor(object):
         'f': ('x', +1),
     }
 
-    _inv_sqrt2 = sqrt(2)/2
     _R_yz_from_xx_zz = dot(((0, -1, 0),
                             (1, 0, 0),
                             (0, 0, 1)),
-                           ((_inv_sqrt2, 0, _inv_sqrt2),
+                           ((_INV_SQRT2, 0, _INV_SQRT2),
                             (0, 1, 0),
-                            (-_inv_sqrt2, 0, _inv_sqrt2)))
+                            (-_INV_SQRT2, 0, _INV_SQRT2)))
     _R_conjugate_for_yz = dot(((1, 0, 0),
                                (0, 0, 1),
                                (0, -1, 0)),
@@ -116,8 +117,6 @@ class MomentTensor(object):
         R32 = R_yz[2][1]
         R33 = R_yz[2][2] # result is unstable if abs(R33) is small.
 
-        sqrt2 = sqrt(2)
-
         # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
         cos_dip = R33
         if absolute(cos_dip) > 1: # todo: is this ok?
@@ -132,7 +131,7 @@ class MomentTensor(object):
             strike = arctan2(-R23, R13)
             sin_strike = -R23/sin_dip
             sin_rake = R32/sin_dip
-            if 1/sqrt2 <= absolute(sin_strike):
+            if _INV_SQRT2 <= absolute(sin_strike):
                 rake = arctan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
             else:
                 rake = arctan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
@@ -153,7 +152,7 @@ class MomentTensor(object):
                                            self._R_yz_from_xx_zz)))
         sdr1 = self._strike_dip_rake_from_R_yz(R_yz)
         sdr2 = self._strike_dip_rake_from_R_yz(R_yz_conjugate)
-        if absolute(R_yz[2][2]) <= 1/sqrt(2):
+        if absolute(R_yz[2][2]) <= _INV_SQRT2:
             return sdr1, sdr2
         else:
             return sdr2, sdr1
@@ -399,8 +398,8 @@ if __name__ == '__main__':
                                         ((0, 2, 0, 0, 0, 0), (45, 90, 180)),
                                         ((0, 0, 3, 0, 0, 0), (0, 90, -90)),
                                         ((0, 0, 0, 4, 0, 0), (90, 90, 90)),
-                                        ((0, 0, 0, 0, 5, 0), (-90, 45, 90)),
-                                        ((0, 0, 0, 0, 0, 6), (0, 45, 90))):
+                                        ((0, 0, 0, 0, 5, 0), (90, 45, 90)),
+                                        ((0, 0, 0, 0, 0, 6), (-180, 45, 90))):
                 self.m.m1to6 = m1to6
                 s, d, r = self.m.strike_dip_rake
                 self.assert_almost_equal_plane((s, d, r), (s0, d0, r0))
