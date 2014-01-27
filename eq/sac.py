@@ -108,7 +108,7 @@ _identity = lambda x: x
 
 
 def parse(x):
-    return Sac().parse(x)
+    return Sac().from_(x)
 
 
 _delete_newlines_table = str.maketrans({'\n': None})
