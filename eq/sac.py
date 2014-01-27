@@ -10,66 +10,59 @@ import pylab as _pylab
 class Error(Exception):
     pass
 
+FLOAT = _pylab.float32
+INTEGER = _pylab.int32
+COMPLEX = _pylab.complex64
 
-def error(cond, msg):
-    if not cond:
-        raise Error(msg)
+_INTEGER_MIN = _pylab.iinfo(INTEGER).min
+_INTEGER_MAX = _pylab.iinfo(INTEGER).max
+_FLOAT_MIN = _pylab.finfo(FLOAT).min
+_FLOAT_MAX = _pylab.finfo(FLOAT).max
 
 
-_FLOAT = _pylab.float32
-_INTEGER = _pylab.int32
-_COMPLEX = _pylab.complex64
+_N_BYTES_SHORT_STRING = 8
+_N_BYTES_LONG_STRING = 16
 
 
-_INTEGER_MIN = _pylab.iinfo(_INTEGER).min
-_INTEGER_MAX = _pylab.iinfo(_INTEGER).max
-_FLOAT_MIN = _pylab.finfo(_FLOAT).min
-_FLOAT_MAX = _pylab.finfo(_FLOAT).max
-
-_BINARY_MODE = '='
-
-_INTERNAL_BYTES_FROM_TYPE = {
-    'short_string': 8,
-    'long_string': 16,
+_N_BINARY_BYTES_FROM_TYPE = {
+    'logical': 4,
+    'integer': 4,
+    'float': 4,
+    'enum': 4,
+    'short_string': _N_BYTES_SHORT_STRING,
+    'long_string': _N_BYTES_LONG_STRING,
 }
-_INTERNAL_BYTES_SHORT_STRING = _INTERNAL_BYTES_FROM_TYPE['short_string']
-_INTERNAL_BYTES_LONG_STRING = _INTERNAL_BYTES_FROM_TYPE['long_string']
 
-_ASCII_BYTES_FROM_TYPE = {
+_N_ASCII_BYTES_FROM_TYPE = {
     'logical': 10,
     'integer': 10,
     'float': 15,
     'enum': 10,
-    'short_string': _INTERNAL_BYTES_SHORT_STRING,
-    'long_string': _INTERNAL_BYTES_LONG_STRING,
+    'short_string': _N_BYTES_SHORT_STRING,
+    'long_string': _N_BYTES_LONG_STRING,
 }
 
-_ASCII_BYTES_SHORT_STRING = _ASCII_BYTES_FROM_TYPE['short_string']
-_ASCII_BYTES_LONG_STRING = _ASCII_BYTES_FROM_TYPE['long_string']
+
+_BINARY_MODE = '='
+
 
 _ASCII_FORMAT_FROM_TYPE = {
-    'logical': '{{:>{}d}}'.format(_ASCII_BYTES_FROM_TYPE['logical']),
-    'integer': '{{:>{}d}}'.format(_ASCII_BYTES_FROM_TYPE['integer']),
-    'float': '{{:>#{}.7g}}'.format(_ASCII_BYTES_FROM_TYPE['float']),
-    'enum': '{{:>{}d}}'.format(_ASCII_BYTES_FROM_TYPE['enum']),
-    'short_string': '{:s}', # assume internal values to always have BYTES_SHORT_STRING bytes
-    'long_string': '{:s}', # assume internal values to always have BYTES_LONG_STRING bytes
+    'logical': '{{:>{}d}}'.format(_N_ASCII_BYTES_FROM_TYPE['logical']),
+    'integer': '{{:>{}d}}'.format(_N_ASCII_BYTES_FROM_TYPE['integer']),
+    'float': '{{:>#{}.7g}}'.format(_N_ASCII_BYTES_FROM_TYPE['float']),
+    'enum': '{{:>{}d}}'.format(_N_ASCII_BYTES_FROM_TYPE['enum']),
+    'short_string': '{:s}',
+    'long_string': '{:s}',
 }
-_PARSE_ASCII_FROM_TYPE = {
-    'logical': int,
-    'integer': int,
-    'float': float,
-    'enum': int,
-    'short_string': lambda s: s,
-    'long_string': lambda s: s,
-}
+
+
 _BINARY_FORMAT_FROM_TYPE = {
-    'logical': 'i',
-    'integer': 'i',
-    'float': 'f',
-    'enum': 'i',
-    'short_string': '{}s'.format(_ASCII_BYTES_SHORT_STRING),
-    'long_string': '{}s'.format(_ASCII_BYTES_LONG_STRING),
+    'logical': _BINARY_MODE + 'i',
+    'integer': _BINARY_MODE + 'i',
+    'float': _BINARY_MODE + 'f',
+    'enum': _BINARY_MODE + 'i',
+    'short_string': _BINARY_MODE + '{}s'.format(_N_ASCII_BYTES_FROM_TYPE['short_string']),
+    'long_string': _BINARY_MODE + '{}s'.format(_N_ASCII_BYTES_FROM_TYPE['long_string']),
 }
 
 
@@ -78,15 +71,9 @@ _UNDEFINED_FROM_TYPE = {
     'integer': -12345,
     'float': -12345.0,
     'enum': -12345,
-    'short_string': '-12345  ',
-    'long_string': '-12345          ',
+    'short_string': b'-12345  ',
+    'long_string': b'-12345          ',
 }
-_UNDEFINED_LOGICAL = _UNDEFINED_FROM_TYPE['logical']
-_UNDEFINED_INTEGER = _UNDEFINED_FROM_TYPE['integer']
-_UNDEFINED_FLOAT = _UNDEFINED_FROM_TYPE['float']
-_UNDEFINED_ENUM = _UNDEFINED_FROM_TYPE['enum']
-_UNDEFINED_SHORT_STRING = _UNDEFINED_FROM_TYPE['short_string']
-_UNDEFINED_LONG_STRING = _UNDEFINED_FROM_TYPE['long_string']
 
 
 _ENUMS = (
@@ -111,69 +98,63 @@ _ENUMS = (
 )
 
 
-def from_(x):
-    return Sac().from_(x)
+_N_ENUMS = len(_ENUMS)
 
 
-def _convert_from(b, a):
-    def wrapper(f):
-        def new_f(x):
-            if x == a:
-                return b
-            else:
-                return f(x)
-        return new_f
-    return wrapper
-_none_from_undefined = lambda undefined: _convert_from(None, undefined)
-_undefined_from_none = lambda undefined: _convert_from(undefined, None)
+_identity = lambda x: x
 
 
-def _assert_range(lower, upper):
-    def wrapper(f):
-        def new_f(x):
-            assert lower <= x <= upper
-            return f(x)
-        return new_f
-    return wrapper
+# functions
 
 
-def _pad_space(s, n):
-    bs = s.encode()
-    nbs = len(bs)
-    assert nbs <= n
-    return (bs + b' '*(n - nbs)).decode()
+def parse(x):
+    return Sac().parse(x)
+
+
+_delete_newlines_table = str.maketrans({'\n': None})
+def _delete_newlines(s):
+    return s.translate(_delete_newlines_table)
+
+
+def _pad_space(b, n):
+    nb = len(b)
+    if nb > n:
+        raise(Error('nb > n: {}'.format(b)))
+    return (b + b' '*(n - nb))
 
 
 def _assert_floats(xs):
     assert _pylab.all(_FLOAT_MIN <= xs) and _pylab.all(xs <= _FLOAT_MAX)
     return xs
 
-def _identity(x):
-    return x
+
+def _none_ok(f):
+    def wrapper(x):
+        if x is None:
+            return x
+        else:
+            return f(x)
+    return wrapper
 
 
 class _FieldProp(object):
 
     def __init__(self, name, eol=False, default=None, type_=None):
         self.name = name
-        self._name = '_' + self.name
         if type_ is None:
             self.type_ = self._type(self.name)
         else:
             self.type_ = type_
         self.eol = eol
         self.default = default
-        self.value_from_internal = getattr(self, '_{}_value_from_internal'.format(self.type_))
-        self.internal_from_value = getattr(self, '_internal_from_{}_value'.format(self.type_))
-        self.pack_value_from_internal = getattr(self, '_{}_pack_value_from_internal'.format(self.type_))
-        self.internal_from_unpacked = getattr(self, '_internal_from_unpacked_{}'.format(self.type_))
-        self.parse_ascii = _PARSE_ASCII_FROM_TYPE[self.type_]
-        self.ascii_format = self._ascii_format(self.type_, eol)
-        self.n_ascii_bytes = _ASCII_BYTES_FROM_TYPE[self.type_]
-        self.binary_format = _BINARY_FORMAT_FROM_TYPE[self.type_]
-
-    def to_ascii(self, x):
-        return self.ascii_format.format(x)
+        self.is_valid = getattr(self, '_is_valid_{}'.format(self.type_))
+        self.from_binary = getattr(self, '_{}_from_binary'.format(self.type_))
+        self.to_binary = getattr(self, '_binary_from_{}'.format(self.type_))
+        self.from_ascii = getattr(self, '_{}_from_ascii'.format(self.type_))
+        self.ascii_format = self._ascii_format(self.type_, self.eol)
+        self.to_ascii = getattr(self, '_ascii_from_{}'.format(self.type_))
+        self.n_ascii_bytes = _N_ASCII_BYTES_FROM_TYPE[self.type_]
+        self.n_binary_bytes = _N_BINARY_BYTES_FROM_TYPE[self.type_]
 
     @staticmethod
     def _type(name):
@@ -190,59 +171,121 @@ class _FieldProp(object):
             return 'float'
 
     @classmethod
-    def _ascii_format(cls, type, eol):
-        ret = _ASCII_FORMAT_FROM_TYPE[type]
+    def _ascii_format(cls, type_, eol):
+        ret = _ASCII_FORMAT_FROM_TYPE[type_]
         if eol:
             ret += '\n'
         return ret
 
+    @classmethod
+    def _make_is_valid(cls, is_valid):
+        return staticmethod(lambda v: (v is None) or is_valid(v))
+
+    @staticmethod
+    def _make_from_ascii(t, value_from_internal, internal_from_ascii):
+        undefined = _UNDEFINED_FROM_TYPE[t]
+        def from_ascii(self, s):
+            internal = internal_from_ascii(s)
+            if internal != undefined:
+                return value_from_internal(internal)
+        return from_ascii
+
+    @staticmethod
+    def _make_to_ascii(t, formattable_from_internal, internal_from_value):
+        undefined = _UNDEFINED_FROM_TYPE[t]
+        def to_ascii(self, v):
+            if self.is_valid(v):
+                if v is None:
+                    internal = undefined
+                else:
+                    internal = internal_from_value(v)
+                return self.ascii_format.format(formattable_from_internal(internal))
+            else:
+                raise(Error('invalid value {} for type {}'.format(v, t)))
+        return to_ascii
+
+    @staticmethod
+    def _make_from_binary(t, value_from_internal):
+        undefined = _UNDEFINED_FROM_TYPE[t]
+        binary_format = _BINARY_FORMAT_FROM_TYPE[t]
+        def from_binary(self, b):
+            internal = _struct.unpack(binary_format, b)[0]
+            if internal != undefined:
+                return value_from_internal(internal)
+        return from_binary
+
+    @staticmethod
+    def _make_to_binary(t, internal_from_value):
+        undefined = _UNDEFINED_FROM_TYPE[t]
+        binary_format = _BINARY_FORMAT_FROM_TYPE[t]
+        def to_binary(self, v):
+            if self.is_valid(v):
+                if v is None:
+                    internal = undefined
+                else:
+                    internal = internal_from_value(v)
+                return _struct.pack(binary_format, internal)
+            else:
+                raise(Error('invalid value {} for type {}'.format(v, t)))
+        return to_binary
+
 
 for (_t,
+     _is_valid,
+     _formattable_from_internal,
      _value_from_internal,
      _internal_from_value,
-     _pack_value_from_internal,
-     _internal_from_unpacked) in (('logical',
-                                   lambda n: n == 1,
-                                   lambda l: 1 if l else 0,
-                                   _identity,
-                                   _identity),
-                                  ('integer',
-                                   _identity,
-                                   _assert_range(_INTEGER_MIN, _INTEGER_MAX)(_identity),
-                                   _identity,
-                                   _identity),
-                                  ('float',
-                                   _identity,
-                                   _assert_range(_FLOAT_MIN, _FLOAT_MAX)(_identity),
-                                   _identity,
-                                   _identity),
-                                  ('enum',
-                                   _assert_range(1, len(_ENUMS))(lambda n: _ENUMS[n - 1]),
-                                   lambda s: _ENUMS.index(s) + 1,
-                                   _identity,
-                                   _identity),
-                                  ('short_string',
-                                   lambda s: s.rstrip(),
-                                   lambda s: _pad_space(s, _INTERNAL_BYTES_SHORT_STRING),
-                                   lambda s: s.encode(),
-                                   lambda b: b.decode()),
-                                  ('long_string',
-                                   lambda s: s.rstrip(),
-                                   lambda s: _pad_space(s, _INTERNAL_BYTES_LONG_STRING),
-                                   lambda s: s.encode(),
-                                   lambda b: b.decode())):
+     _internal_from_ascii) in (('logical',
+                                lambda v: (v is True) or (v is False),
+                                _identity,
+                                lambda n: n == 1,
+                                lambda l: 1 if l else 0,
+                                int),
+                               ('integer',
+                                lambda n: _INTEGER_MIN <= n <= _INTEGER_MAX,
+                                _identity,
+                                _identity,
+                                _identity,
+                                int),
+                               ('float',
+                                lambda x: _FLOAT_MIN <= x <= _FLOAT_MAX,
+                                _identity,
+                                _identity,
+                                _identity,
+                                float),
+                               ('enum',
+                                lambda s: s in _ENUMS,
+                                _identity,
+                                lambda n: _ENUMS[n-1],
+                                lambda s: _ENUMS.index(s) + 1,
+                                int),
+                               ('short_string',
+                                lambda s: len(s.encode()) <= _N_BYTES_SHORT_STRING,
+                                lambda b: b.decode(),
+                                lambda s: s.decode().rstrip(),
+                                lambda s: _pad_space(s.encode(), _N_BYTES_SHORT_STRING),
+                                lambda s: s.encode()),
+                               ('long_string',
+                                lambda s: len(s.encode()) <= _N_BYTES_LONG_STRING,
+                                lambda b: b.decode(),
+                                lambda s: s.decode().rstrip(),
+                                lambda s: _pad_space(s.encode(), _N_BYTES_LONG_STRING),
+                                lambda s: s.encode())):
     setattr(_FieldProp,
-            '_{}_value_from_internal'.format(_t),
-            staticmethod(_none_from_undefined(_UNDEFINED_FROM_TYPE[_t])(_value_from_internal)))
+            '_is_valid_{}'.format(_t),
+            _FieldProp._make_is_valid(_is_valid))
     setattr(_FieldProp,
-            '_internal_from_{}_value'.format(_t),
-            staticmethod(_undefined_from_none(_UNDEFINED_FROM_TYPE[_t])(_internal_from_value)))
+            '_{}_from_ascii'.format(_t),
+            _FieldProp._make_from_ascii(_t, _value_from_internal, _internal_from_ascii))
     setattr(_FieldProp,
-            '_{}_pack_value_from_internal'.format(_t),
-            staticmethod(_pack_value_from_internal))
+            '_ascii_from_{}'.format(_t),
+            _FieldProp._make_to_ascii(_t, _formattable_from_internal, _internal_from_value))
     setattr(_FieldProp,
-            '_internal_from_unpacked_{}'.format(_t),
-            staticmethod(_internal_from_unpacked))
+            '_{}_from_binary'.format(_t),
+            _FieldProp._make_from_binary(_t, _value_from_internal))
+    setattr(_FieldProp,
+            '_binary_from_{}'.format(_t),
+            _FieldProp._make_to_binary(_t, _internal_from_value))
 
 
 class _Meta(object):
@@ -384,11 +427,8 @@ class _Meta(object):
     )
 
     NAMES = tuple(f.name for f in FIELDS)
-    BINARY_FORMAT = _BINARY_MODE + ''.join(field.binary_format for field in FIELDS)
-    BYTES_BINARY_FORMAT = _struct.calcsize(BINARY_FORMAT)
-    BYTES_ASCII_FORMAT = sum(_ASCII_BYTES_FROM_TYPE[field.type_] + (1 if field.eol else 0)
-                             for field
-                             in FIELDS)
+    N_BYTES_BINARY_FORMAT = sum(f.n_binary_bytes for f in FIELDS)
+    N_BYTES_ASCII_FORMAT = sum(f.n_ascii_bytes for f in FIELDS)
 
     def __init__(self):
         for field in self.FIELDS:
@@ -403,50 +443,49 @@ class _Meta(object):
     def to_dict(self):
         return {name: getattr(self, name) for name in self.NAMES}
 
-    def __str__(self):
-        return ''.join(field.to_ascii(getattr(self, field._name)) for field in self.FIELDS)
-
-    def from_bytes(self, b):
-        for field, value in zip(self.FIELDS, _struct.unpack(self.BINARY_FORMAT, b)):
-            setattr(self, field._name, self.internal_from_unpacked(value))
-        return self
-
     def __bytes__(self):
-        return _struct.pack(self.BINARY_FORMAT,
-                            *(field.pack_value_from_internal(getattr(self, field._name))
-                              for field
-                              in self.FIELDS))
+        return b''.join(field.to_binary(getattr(self, field.name)) for field in self.FIELDS)
+
+    def __str__(self):
+        return ''.join(field.to_ascii(getattr(self, field.name)) for field in self.FIELDS)
+
+    @classmethod
+    def _make_from_bytes(cls):
+        name_il_ir_fns = []
+        il = 0
+        for field in cls.FIELDS:
+            ir = il + field.n_binary_bytes
+            name_il_ir_fns.append((field.name, il, ir, field.from_binary))
+            il = ir
+        n_binary_bytes = ir
+        def from_bytes(self, b):
+            if len(b) != n_binary_bytes:
+                raise(Error('len(b) != n_binary_bytes: {}, {}'.format(len(b), n_binary_bytes)))
+            for name, il, ir, fn in name_il_ir_fns:
+                setattr(self, name, fn(b[il:ir]))
+            return self
+        return from_bytes
 
     @classmethod
     def _make_from_str(cls):
-        _name_il_ir_fns = []
+        name_il_ir_fns = []
         il = 0
         for field in cls.FIELDS:
             ir = il + field.n_ascii_bytes
-            _name_il_ir_fns.append((field._name, il, ir, field.parse_ascii))
+            name_il_ir_fns.append((field.name, il, ir, field.from_ascii))
             il = ir
-            if field.eol:
-                ir = il + 1
-                il = ir
         n_ascii_bytes = ir
-
         def from_str(self, s):
-            bs = s.encode()
-            assert len(bs) == n_ascii_bytes
-            for _name, il, ir, fn in _name_il_ir_fns:
-                setattr(self, _name, fn(bs[il:ir].decode()))
+            b = _delete_newlines(s).encode()
+            if len(b) != n_ascii_bytes:
+                raise(Error('len(b) != n_ascii_bytes: {}, {}'.format(len(b), n_ascii_bytes)))
+            for name, il, ir, fn in name_il_ir_fns:
+                setattr(self, name, fn(b[il:ir].decode()))
             return self
         return from_str
 
-    @staticmethod
-    def _make_property(field):
-        return property(lambda self: field.value_from_internal(getattr(self, field._name)),
-                        lambda self, value: setattr(self, field._name, field.internal_from_value(value)))
-
+_Meta.from_bytes = _Meta._make_from_bytes()
 _Meta.from_str = _Meta._make_from_str()
-
-for _field in _Meta.FIELDS:
-    setattr(_Meta, _field.name, _Meta._make_property(_field))
 # `adjtm` seems not used
 # _Meta.adjtm = property(lambda self: self._float_from_internal(self._fhdr64),
 #                       lambda self, value: setattr(self, '_fhdr64', self._internal_from_float(value)))
@@ -455,8 +494,8 @@ for _field in _Meta.FIELDS:
 class Sac(object):
 
     BINARY_FORMAT = 'f'
-    BYTES_BINARY_FORMAT = _struct.calcsize(BINARY_FORMAT)
-    BYTES_ASCII_FORMAT = _ASCII_BYTES_FROM_TYPE['float']
+    N_BYTES_BINARY_FORMAT = _struct.calcsize(BINARY_FORMAT)
+    N_BYTES_ASCII_FORMAT = _N_ASCII_BYTES_FROM_TYPE['float']
     ASCII_FORMAT = _ASCII_FORMAT_FROM_TYPE['float']
     N_COLUMN = 5
 
@@ -477,6 +516,8 @@ class Sac(object):
             ss.append(self.ASCII_FORMAT.format(x))
             if i%self.N_COLUMN == self.N_COLUMN - 1:
                 ss.append('\n')
+        if ss[-1] != '\n':
+            ss.append('\n')
         return str(self.meta) + ''.join(ss)
 
     def __bytes__(self):
@@ -500,28 +541,29 @@ class Sac(object):
         return self
 
     def from_bytes(self, b):
-        self.meta = _Meta().from_bytes(b[:_Meta.BYTES_BINARY_FORMAT])
-        bytes_data = len(b) - _Meta.BYTES_BINARY_FORMAT
-        assert bytes_data%self.BYTES_BINARY_FORMAT == 0
+        self.meta = _Meta().from_bytes(b[:_Meta.N_BYTES_BINARY_FORMAT])
+        n_bytes_data = len(b) - _Meta.N_BYTES_BINARY_FORMAT
+        assert n_bytes_data%self.N_BYTES_BINARY_FORMAT == 0
         self._data = _struct.unpack('{}{}{}'.format(_BINARY_MODE,
-                                                    bytes_data//self.BYTES_BINARY_FORMAT,
+                                                    n_bytes_data//self.N_BYTES_BINARY_FORMAT,
                                                     self.BINARY_FORMAT),
-                                    b[_Meta.BYTES_BINARY_FORMAT:])
+                                    b[_Meta.N_BYTES_BINARY_FORMAT:])
         return self
 
     def from_str(self, s):
-        b = s.encode()
-        self.meta = _Meta().from_str(b[:_Meta.BYTES_ASCII_FORMAT].decode())
-        clean_data = b[_Meta.BYTES_ASCII_FORMAT:].translate(None, b'\n')
-        bytes_clean_data = len(clean_data)
-        assert pp(bytes_clean_data)%pp(self.BYTES_ASCII_FORMAT) == 0
-        self._data = _FLOAT([clean_data[i*self.BYTES_ASCII_FORMAT:(i+1)*self.BYTES_ASCII_FORMAT]
+        b = _delete_newlines(s).encode()
+        self.meta = _Meta().from_str(b[:_Meta.N_BYTES_ASCII_FORMAT].decode())
+        data = b[_Meta.N_BYTES_ASCII_FORMAT:]
+        n_bytes_data = len(data)
+        if n_bytes_data%self.N_BYTES_ASCII_FORMAT != 0:
+            raise(Error('n_bytes_data%self.N_BYTES_ASCII_FORMAT != 0: {}, {}'.format(n_bytes_data, self.N_BYTES_ASCII_FORMAT)))
+        self._data = FLOAT([data[i*self.N_BYTES_ASCII_FORMAT:(i+1)*self.N_BYTES_ASCII_FORMAT]
                             for i
-                            in range(bytes_clean_data//self.BYTES_ASCII_FORMAT)])
+                            in range(n_bytes_data//self.N_BYTES_ASCII_FORMAT)])
         return self
 
     def from_dict(self, d):
-        self.meta.from_dict(d['meta'])
+        self.meta = _Meta().from_dict(d['meta'])
         self.data = d['data']
         return self
 
@@ -595,7 +637,7 @@ if __name__ == '__main__':
         def setUp(self):
             self.h = _Meta()
 
-        def test_parse_str():
+        def test_parse_str(self):
             s = """\
        1.000000      -2.000000       4.000000      -12345.00      -12345.00
        0.000000       6.000000      -12345.00      -12345.00      -12345.00
@@ -652,7 +694,7 @@ if __name__ == '__main__':
             self.assertTrue(sac_s.meta.t8 is None)
             self.assertTrue(sac_s.meta.t9 is None)
             self.assertTrue(sac_s.meta.f is None)
-            self.assertTrue(sac_s.meta.resp is None )
+            self.assertTrue(sac_s.meta.resp0 is None)
             self.assertTrue(sac_s.meta.resp1 is None)
             self.assertTrue(sac_s.meta.resp2 is None)
             self.assertTrue(sac_s.meta.resp3 is None)
@@ -769,9 +811,10 @@ if __name__ == '__main__':
                 self.assertAlmostEqual(parsed, orig)
             self.assertEqual(str(sac_s), s)
 
-        def test_parse_bytes():
-            b = b'\x00\x00\x80?\x00\x00\x00\xc0\x00\x00\x80@\x00\xe4@\xc6\x00\xe4@\xc6\x00\x00\x00\x00\x00\x00\xc0@\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\x00\x80?\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x06\x00\x00\x00\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x07\x00\x00\x00\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x01\x00\x00\x00\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00-12345  testing_waveform-12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  \x00\x00\x80@\x00\x00@@\x00\x00\x00@\x00\x00\x80?\x00\x00\x00\x00\x00\x00\x80\xbf\x00\x00\x00\xc0'
+        def test_parse_bytes(self):
+            b = b'\x00\x00\x80?\x00\x00\x00\xc0\x00\x00\x80@\x00\xe4@\xc6\x00\xe4@\xc6\x00\x00\x00\x00\x00\x00\xc0@\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\x00\x80?\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\x00\xe4@\xc6\xdd\x07\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00;\x00\x00\x00;\x00\x00\x00\x01\x00\x00\x00\x06\x00\x00\x00\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x07\x00\x00\x00\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x01\x00\x00\x00\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\xc7\xcf\xff\xff\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00 \xe7\xad\x91\xe6\xb3\xa2 testing_waveform-12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  -12345  \x00\x00\x80@\x00\x00@@\x00\x00\x00@\x00\x00\x80?\x00\x00\x00\x00\x00\x00\x80\xbf\x00\x00\x00\xc0'
             sac_b = Sac(b)
+            #pp()print([[k, v] if v is not None else '' for k, v in sac_b.to_dict()['meta'].items()])
             self.assertAlmostEqual(sac_b.meta.delta, 1)
             self.assertAlmostEqual(sac_b.meta.depmin, -2)
             self.assertAlmostEqual(sac_b.meta.depmax, 4)
@@ -793,7 +836,7 @@ if __name__ == '__main__':
             self.assertTrue(sac_b.meta.t8 is None)
             self.assertTrue(sac_b.meta.t9 is None)
             self.assertTrue(sac_b.meta.f is None)
-            self.assertTrue(sac_b.meta.resp is None )
+            self.assertTrue(sac_b.meta.resp0 is None)
             self.assertTrue(sac_b.meta.resp1 is None)
             self.assertTrue(sac_b.meta.resp2 is None)
             self.assertTrue(sac_b.meta.resp3 is None)
@@ -910,7 +953,7 @@ if __name__ == '__main__':
                 self.assertAlmostEqual(parsed, orig)
             self.assertEqual(bytes(sac_b), b)
 
-        def test_parse_dict():
+        def test_parse_dict(self):
             d = {
                 'meta': {
                     'delta': 1,
@@ -992,7 +1035,7 @@ if __name__ == '__main__':
                     'nvhdr': 6,
                     'norid': None,
                     'nevid': None,
-                    'npts': 6,
+                    'npts': 7,
                     'nspts': None,
                     'nwfid': None,
                     'nxsize': None,
@@ -1071,7 +1114,7 @@ if __name__ == '__main__':
             self.assertTrue(sac_d.meta.t8 is None)
             self.assertTrue(sac_d.meta.t9 is None)
             self.assertTrue(sac_d.meta.f is None)
-            self.assertTrue(sac_d.meta.resp is None )
+            self.assertTrue(sac_d.meta.resp0 is None)
             self.assertTrue(sac_d.meta.resp1 is None)
             self.assertTrue(sac_d.meta.resp2 is None)
             self.assertTrue(sac_d.meta.resp3 is None)
@@ -1230,82 +1273,8 @@ if __name__ == '__main__':
             self.h.lovrok = None
             self.h.nvhdr = None
             self.assertEqual(str(self.h), s)
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(Error):
                 self.h.from_str('too short')
 
-        def test_internal_converters(self):
-            self.h.delta = 1.0
-            self.assertAlmostEqual(self.h._delta, 1.0)
-            self.assertAlmostEqual(self.h.delta, 1.0)
-            self.h.delta = None
-            self.assertAlmostEqual(self.h._delta, _UNDEFINED_FLOAT)
-            self.assertTrue(self.h.delta is None)
-            with self.assertRaises(AssertionError):
-                self.h.delta = 2*_FLOAT_MIN
-            with self.assertRaises(AssertionError):
-                self.h.delta = 2*_FLOAT_MAX
-
-            self.h.nzyear = 2
-            self.assertEqual(self.h._nzyear, 2)
-            self.assertEqual(self.h.nzyear, 2)
-            self.h.nzyear = None
-            self.assertEqual(self.h._nzyear, _UNDEFINED_INTEGER)
-            self.assertEqual(self.h.nzyear, None)
-            with self.assertRaises(AssertionError):
-                self.h.nzyear = 2*_INTEGER_MIN
-            with self.assertRaises(AssertionError):
-                self.h.nzyear = 2*_FLOAT_MAX
-
-            self.h.iftype = 'it'
-            self.assertEqual(self.h._iftype, 85)
-            self.assertEqual(self.h.iftype, 'it')
-            self.h.iftype = None
-            self.assertEqual(self.h._iftype, _UNDEFINED_ENUM)
-            self.assertEqual(self.h.iftype, None)
-            with self.assertRaises(Exception):
-                self.h.iftype = 'not_member_of_enums'
-            self.h._iftype = 0
-            with self.assertRaises(AssertionError):
-                self.h.iftype
-            self.h._iftype = len(_ENUMS) + 1
-            with self.assertRaises(Exception):
-                self.h.iftype
-
-            self.h.leven = True
-            self.assertEqual(self.h._leven, 1)
-            self.assertEqual(self.h.leven, True)
-            self.h.leven = False
-            self.assertEqual(self.h._leven, 0)
-            self.assertEqual(self.h.leven, False)
-            self.h.leven = None
-            self.assertEqual(self.h._leven, _UNDEFINED_LOGICAL)
-            self.assertEqual(self.h.leven, None)
-
-            self.h.kstnm = 'erm'
-            self.assertEqual(self.h._kstnm, 'erm     ')
-            self.assertEqual(self.h.kstnm, 'erm')
-            self.h.kstnm = '筑波'
-            self.assertEqual(self.h._kstnm, '筑波  ')
-            self.assertEqual(self.h.kstnm, '筑波')
-            self.h.kstnm = ''
-            self.assertEqual(self.h._kstnm, '        ')
-            self.assertEqual(self.h.kstnm, '')
-            self.h.kstnm = None
-            self.assertEqual(self.h._kstnm, _UNDEFINED_SHORT_STRING)
-            self.assertEqual(self.h.kstnm, None)
-            with self.assertRaises(AssertionError):
-                self.h.kstnm = '123456789'
-
-            self.h.kevnm = 'sanriku-oki'
-            self.assertEqual(self.h._kevnm, 'sanriku-oki     ')
-            self.assertEqual(self.h.kevnm, 'sanriku-oki')
-            self.h.kevnm = ''
-            self.assertEqual(self.h._kevnm, ' '*16)
-            self.assertEqual(self.h.kevnm, '')
-            self.h.kevnm = None
-            self.assertEqual(self.h._kevnm, _UNDEFINED_LONG_STRING)
-            self.assertEqual(self.h.kevnm, None)
-            with self.assertRaises(AssertionError):
-                self.h.kevnm = '0123456789abcdefg'
 
     unittest.main()
