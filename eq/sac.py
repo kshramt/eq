@@ -437,7 +437,7 @@ class _Meta(object):
     def from_dict(self, d):
         for field in self.FIELDS:
             name = field.name
-            setattr(self, name, d[name])
+            setattr(self, name, d.get(name, field.default))
         return self
 
     def to_dict(self):
