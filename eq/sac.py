@@ -516,7 +516,7 @@ class Sac(object):
             ss.append(self.ASCII_FORMAT.format(x))
             if i%self.N_COLUMN == self.N_COLUMN - 1:
                 ss.append('\n')
-        if ss[-1] != '\n':
+        if len(ss) == 0 or ss[-1] != '\n':
             ss.append('\n')
         return str(self.meta) + ''.join(ss)
 
