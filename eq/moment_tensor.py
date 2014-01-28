@@ -10,6 +10,10 @@ from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad
 class Error(Exception):
     pass
 
+def _error(cond=True, msg='', *args):
+    if cond:
+        raise(Error(msg.format(*args)))
+
 
 _SQRT2 = sqrt(2)
 _INV_SQRT2 = _SQRT2/2
@@ -133,10 +137,9 @@ class MomentTensor(object):
             m0 = 1
         elif n_sdr_m0 == 4:
             strike, dip, rake, m0 = sdr_m0
-            if m0 < 0:
-                raise(Error('m0 < 0: {}'.format(m0)))
+            _error(m0 < 0, 'm0 < 0: {}', m0)
         else:
-            raise(Error('invalid argument: {}'.format(sdr_m0)))
+            _error(True, 'invalid argument: {}', sdr_m0)
 
         R = self._dots(self._rotate_xy(-strike),
                        self._rotate_xz(-dip),
@@ -194,7 +197,7 @@ class MomentTensor(object):
         # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
         cos_dip = R33
         if absolute(cos_dip) > 1: # todo: is this ok?
-            assert absolute(cos_dip) < 1 + 1e-7
+            _error(absolute(cos_dip) > 1 + 1e-7, 'absolute(cos_dip) > 1 + 1e-7: {}', cos_dip)
             cos_dip = sign(cos_dip)
         dip = arccos(cos_dip)
         sin_dip = sin(dip)
@@ -243,7 +246,7 @@ class MomentTensor(object):
 
     @staticmethod
     def _update_by_indices(xs, is_):
-        assert len(xs) == len(is_)
+        _error(len(xs) != len(is_), 'xs, is_: {}, {}', xs, is_)
         return [xs[i] for i in is_]
 
     @staticmethod
@@ -408,7 +411,7 @@ if __name__ == '__main__':
         def assert_one_plane_is_ok(self, sdr, sdrs):
             #print('ORIG:\t{}\t{}\t{}'.format(*sdr), file=sys.stderr)
             def f(sdrs):
-                assert len(sdrs) >= 1
+                _error(len(sdrs) < 1, 'len(sdrs) < 1: {}', sdrs)
                 sdr_ = sdrs[0]
                 #print('C:\t{}\t{}\t{}'.format(*sdr_), file=sys.stderr)
                 if len(sdrs) == 1:
