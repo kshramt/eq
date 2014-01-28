@@ -45,6 +45,66 @@ class MomentTensor(object):
     def __str__(self):
         return 'xx:{}\tyy:{}\tzz:{}\txy:{}\txz:{}\tyz:{}'.format(self.xx, self.yy, self.zz, self.xy, self.xz, self.yz)
 
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.mxyz == other.mxyz
+
+    def __itruediv__(self, x):
+        self *= 1/x
+        return self
+
+    def __truediv__(self, x):
+        ret = type(self)()
+        ret.mxyz = self.mxyz
+        ret /= x
+        return ret
+
+    def __imul__(self, x):
+        self.xx *= x
+        self.xy *= x
+        self.xz *= x
+        self.yy *= x
+        self.yz *= x
+        self.zz *= x
+        return self
+
+    def __mul__(self, x):
+        ret = type(self)()
+        ret.mxyz = self.mxyz
+        ret *= x
+        return ret
+
+    __rmul__ = __mul__
+
+    def __isub__(self, other):
+        self += (-1)*other
+        return self
+
+
+    def __sub__(self, other):
+        ret = type(self)()
+        ret.mxyz = self.mxyz
+        ret -= other
+        return ret
+
+    def __iadd__(self, other):
+        if isinstance(other, type(self)):
+            self.xx += other.xx
+            self.xy += other.xy
+            self.xz += other.xz
+            self.yy += other.yy
+            self.yz += other.yz
+            self.zz += other.zz
+            return self
+        else:
+            return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, type(self)):
+            ret = type(self)()
+            ret.mxyz = self.mxyz
+            ret += other
+            return ret
+
     @property
     def moment(self):
         (m1, _, m3), _ = self.ms_rotateion
@@ -352,6 +412,39 @@ if __name__ == '__main__':
             self.m.xy = 4
             self.m.xz = 5
             self.m.yz = 6
+
+        def test_mul_div(self):
+            m1 = MomentTensor()
+            m2 = MomentTensor()
+            m3 = MomentTensor()
+            m1.mxxyyzzxyxzyz = (1, 2, 3, 4, 5, 6)
+            m2.mxxyyzzxyxzyz = (2, 4, 6, 8, 10, 12)
+            m3.mxxyyzzxyxzyz = (3, 6, 9, 12, 15, 18)
+            self.assertEqual((m1*2), m2)
+            self.assertEqual((2*m1), m2)
+            m2 *= 1.5
+            self.assertAlmostEqual(m2.m1to6, m3.m1to6)
+            self.assertAlmostEqual((m3/3).m1to6, m1.m1to6)
+            m3 /= 3
+            self.assertAlmostEqual(m3.m1to6, m1.m1to6)
+
+        def test_add_sub(self):
+            m1 = MomentTensor()
+            m1_ = MomentTensor()
+            m2 = MomentTensor()
+            m2_ = MomentTensor()
+            m3 = MomentTensor()
+            m1.mxxyyzzxyxzyz = (2, 4, 6, 8, 10, 12)
+            m1_.mxxyyzzxyxzyz = (2, 4, 6, 8, 10, 12)
+            m2.mxxyyzzxyxzyz = (1, 3, 5, 7, 9, 11)
+            m2_.mxxyyzzxyxzyz = (1, 3, 5, 7, 9, 11)
+            m3.mxxyyzzxyxzyz = (3, 7, 11, 15, 19, 23)
+            self.assertEqual((m1 + m2), m3)
+            self.assertEqual((m3 - m1), m2)
+            m2 += m1
+            self.assertEqual(m2, m3)
+            m3 -= m2_
+            self.assertEqual(m3, m1_)
 
         def test_moment(self):
             self.m.m1to6 = (2, 0, 0, 0, 0, 3)
