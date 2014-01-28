@@ -6,8 +6,14 @@ from random import random
 from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
 # from kshramt import pp
 
+
+class Error(Exception):
+    pass
+
+
 _SQRT2 = sqrt(2)
 _INV_SQRT2 = _SQRT2/2
+
 
 class MomentTensor(object):
     """
@@ -119,8 +125,18 @@ class MomentTensor(object):
         sdr, _ = self.strike_dip_rakes
         return sdr
 
-    def set_strike_dip_rake(self, strike, dip, rake, m0=1):
-        assert m0 >= 0
+    @strike_dip_rake.setter
+    def strike_dip_rake(self, sdr_m0):
+        n_sdr_m0 = len(sdr_m0)
+        if n_sdr_m0 == 3:
+            strike, dip, rake = sdr_m0
+            m0 = 1
+        elif n_sdr_m0 == 4:
+            strike, dip, rake, m0 = sdr_m0
+            if m0 < 0:
+                raise(Error('m0 < 0: {}'.format(m0)))
+        else:
+            raise(Error('invalid argument: {}'.format(sdr_m0)))
 
         R = self._dots(self._rotate_xy(-strike),
                        self._rotate_xz(-dip),
@@ -131,7 +147,6 @@ class MomentTensor(object):
                                 (0, 0, 0),
                                 (0, 0, m0)),
                                transpose(R))
-        return self
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
         if dip > 90: # 0 <= dip <= 90
@@ -352,6 +367,7 @@ if __name__ == '__main__':
 
 
     class Tester(unittest.TestCase):
+
         def is_almost_equal_angle(self, x, y):
             delta = 0.01
             if absolute(x) > 180 - delta:
@@ -474,7 +490,7 @@ if __name__ == '__main__':
                                           (180, 45, -90, (1, 0, 0,
                                                           0, 0, 0,
                                                           0, 0, -1))):
-                self.m.set_strike_dip_rake(s, d, r)
+                self.m.strike_dip_rake = (s, d, r)
                 self.assertAlmostEqual(self.m.xx, xx)
                 self.assertAlmostEqual(self.m.xy, xy)
                 self.assertAlmostEqual(self.m.xz, xz)
@@ -500,22 +516,20 @@ if __name__ == '__main__':
                             (45, 90, 1),
                             (45, 90, 180),
                             (0, 90, 180)):
-                s_, d_, r_ = self.m.set_strike_dip_rake(s, d, r).strike_dip_rake
+                self.m.strike_dip_rake = (s, d, r)
+                s_, d_, r_ = self.m.strike_dip_rake
                 self.assert_almost_equal_plane((s_, d_, r_), (s, d, r))
 
             for _ in range(500):
                 s = 360*(0.5 - random())
-                self.assert_one_plane_is_ok((s, 0, 0),
-                                            self.m\
-                                            .set_strike_dip_rake(s, 0, 0)\
-                                            .strike_dip_rakes)
-                self.assert_one_plane_is_ok((s, 90, 0),
-                                            self.m\
-                                            .set_strike_dip_rake(s, 90, 0)\
-                                            .strike_dip_rakes)
+                self.m.strike_dip_rake = (s, 0, 0)
+                self.assert_one_plane_is_ok((s, 0, 0), self.m.strike_dip_rakes)
+                self.m.strike_dip_rake = (s, 90, 0)
+                self.assert_one_plane_is_ok((s, 90, 0), self.m.strike_dip_rakes)
 
             for sdr in ((180, 90, 1),):
-                sdr1, sdr2 = self.m.set_strike_dip_rake(*sdr).strike_dip_rakes
+                self.m.strike_dip_rake = sdr
+                sdr1, sdr2 = self.m.strike_dip_rakes
                 s_, d_, r_ = self.m._correction_strike_dip_rake(*sdr)
                 if d_ == 0:
                     r_ = 0
@@ -530,7 +544,8 @@ if __name__ == '__main__':
                 if d_ == 0:
                     r_ = 0
                     s_ = s_ - r_
-                sdr1, sdr2 = self.m.set_strike_dip_rake(s, d, r).strike_dip_rakes
+                self.m.strike_dip_rake = (s, d, r)
+                sdr1, sdr2 = self.m.strike_dip_rakes
 
         def test__sorted_eig(self):
             es, vs = self.m._sorted_eig(((2, 0, 0),
