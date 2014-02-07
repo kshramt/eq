@@ -371,7 +371,7 @@ class _Meta(object):
         _FieldProp(name='norid'),
         _FieldProp(name='nevid'),
         _FieldProp(name='npts', eol=True),
-        _FieldProp(name='nspts'),
+        _FieldProp(name='nsnpts'),
         _FieldProp(name='nwfid'),
         _FieldProp(name='nxsize'),
         _FieldProp(name='nysize'),
@@ -753,7 +753,7 @@ if __name__ == '__main__':
             self.assertTrue(sac_s.meta.norid is None)
             self.assertTrue(sac_s.meta.nevid is None)
             self.assertEqual(sac_s.meta.npts, 7)
-            self.assertTrue(sac_s.meta.nspts is None)
+            self.assertTrue(sac_s.meta.nsnpts is None)
             self.assertTrue(sac_s.meta.nwfid is None)
             self.assertTrue(sac_s.meta.nxsize is None)
             self.assertTrue(sac_s.meta.nysize is None)
@@ -895,7 +895,7 @@ if __name__ == '__main__':
             self.assertTrue(sac_b.meta.norid is None)
             self.assertTrue(sac_b.meta.nevid is None)
             self.assertEqual(sac_b.meta.npts, 7)
-            self.assertTrue(sac_b.meta.nspts is None)
+            self.assertTrue(sac_b.meta.nsnpts is None)
             self.assertTrue(sac_b.meta.nwfid is None)
             self.assertTrue(sac_b.meta.nxsize is None)
             self.assertTrue(sac_b.meta.nysize is None)
@@ -1036,7 +1036,7 @@ if __name__ == '__main__':
                     'norid': None,
                     'nevid': None,
                     'npts': 7,
-                    'nspts': None,
+                    'nsnpts': None,
                     'nwfid': None,
                     'nxsize': None,
                     'nysize': None,
@@ -1173,7 +1173,7 @@ if __name__ == '__main__':
             self.assertTrue(sac_d.meta.norid is None)
             self.assertTrue(sac_d.meta.nevid is None)
             self.assertEqual(sac_d.meta.npts, 7)
-            self.assertTrue(sac_d.meta.nspts is None)
+            self.assertTrue(sac_d.meta.nsnpts is None)
             self.assertTrue(sac_d.meta.nwfid is None)
             self.assertTrue(sac_d.meta.nxsize is None)
             self.assertTrue(sac_d.meta.nysize is None)
