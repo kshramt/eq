@@ -537,7 +537,7 @@ class Sac(object):
         elif isinstance(x, dict):
             self.from_dict(x)
         else:
-            raise Error('no method to convert {}'.format(type(x)))
+            raise(Error('no method to convert {}'.format(type(x))))
         return self
 
     def from_bytes(self, b):
