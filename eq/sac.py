@@ -376,7 +376,7 @@ class _Meta(object):
         _FieldProp(name='nxsize'),
         _FieldProp(name='nysize'),
         _FieldProp(name='nhdr56', eol=True),
-        _FieldProp(name='iftype'),
+        _FieldProp(name='iftype', default='itime'),
         _FieldProp(name='idep'),
         _FieldProp(name='iztype'),
         _FieldProp(name='ihdr4'),
