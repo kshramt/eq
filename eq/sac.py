@@ -119,7 +119,7 @@ def _delete_newlines(s):
 def _pad_space(b, n):
     nb = len(b)
     if nb > n:
-        raise(Error('nb > n: {}'.format(b)))
+        raise Error('nb > n: {}'.format(b))
     return (b + b' '*(n - nb))
 
 
@@ -201,7 +201,7 @@ class _FieldProp(object):
                     internal = internal_from_value(v)
                 return self.ascii_format.format(formattable_from_internal(internal))
             else:
-                raise(Error('invalid value {} for type {}'.format(v, t)))
+                raise Error('invalid value {} for type {}'.format(v, t))
         return to_ascii
 
     @staticmethod
@@ -226,7 +226,7 @@ class _FieldProp(object):
                     internal = internal_from_value(v)
                 return _struct.pack(binary_format, internal)
             else:
-                raise(Error('invalid value {} for type {}'.format(v, t)))
+                raise Error('invalid value {} for type {}'.format(v, t))
         return to_binary
 
 
@@ -460,7 +460,7 @@ class _Meta(object):
         n_binary_bytes = ir
         def from_bytes(self, b):
             if len(b) != n_binary_bytes:
-                raise(Error('len(b) != n_binary_bytes: {}, {}'.format(len(b), n_binary_bytes)))
+                raise Error('len(b) != n_binary_bytes: {}, {}'.format(len(b), n_binary_bytes))
             for name, il, ir, fn in name_il_ir_fns:
                 setattr(self, name, fn(b[il:ir]))
             return self
@@ -478,7 +478,7 @@ class _Meta(object):
         def from_str(self, s):
             b = _delete_newlines(s).encode()
             if len(b) != n_ascii_bytes:
-                raise(Error('len(b) != n_ascii_bytes: {}, {}'.format(len(b), n_ascii_bytes)))
+                raise Error('len(b) != n_ascii_bytes: {}, {}'.format(len(b), n_ascii_bytes))
             for name, il, ir, fn in name_il_ir_fns:
                 setattr(self, name, fn(b[il:ir].decode()))
             return self
@@ -537,7 +537,7 @@ class Sac(object):
         elif isinstance(x, dict):
             self.from_dict(x)
         else:
-            raise(Error('no method to convert {}'.format(type(x))))
+            raise Error('no method to convert {}'.format(type(x)))
         return self
 
     def from_bytes(self, b):
@@ -556,7 +556,7 @@ class Sac(object):
         data = b[_Meta.N_BYTES_ASCII_FORMAT:]
         n_bytes_data = len(data)
         if n_bytes_data%self.N_BYTES_ASCII_FORMAT != 0:
-            raise(Error('n_bytes_data%self.N_BYTES_ASCII_FORMAT != 0: {}, {}'.format(n_bytes_data, self.N_BYTES_ASCII_FORMAT)))
+            raise Error('n_bytes_data%self.N_BYTES_ASCII_FORMAT != 0: {}, {}'.format(n_bytes_data, self.N_BYTES_ASCII_FORMAT))
         self._data = FLOAT([data[i*self.N_BYTES_ASCII_FORMAT:(i+1)*self.N_BYTES_ASCII_FORMAT]
                             for i
                             in range(n_bytes_data//self.N_BYTES_ASCII_FORMAT)])

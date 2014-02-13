@@ -12,7 +12,7 @@ class Error(Exception):
 
 def _error(cond=True, msg='', *args):
     if cond:
-        raise(Error(msg.format(*args)))
+        raise Error(msg.format(*args))
 
 
 _SQRT2 = sqrt(2)
