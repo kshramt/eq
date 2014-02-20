@@ -12,7 +12,7 @@ export SHELL := /bin/bash
 export SHELLOPTS := pipefail:errexit:nounset:noclobber
 
 # Tasks
-.PHONY: all test test_coverage
+.PHONY: all test test_coverage up_prepare up
 
 all: test
 
@@ -27,6 +27,15 @@ test:
 
 test_coverage: test
 	coverage html
+
+up: up_prepare
+	cd ../pypi/eq
+	$(MY_PYTHON) setup.py register sdist upload
+	rm -f ~/.pypirc
+
+up_prepare:
+	cd ../pypi/eq
+	git pull origin master
 
 # Files
 
