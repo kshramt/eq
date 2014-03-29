@@ -19,5 +19,7 @@ distutils.core.setup(name='eq',
                                   "Operating System :: Unix",
                                   "Programming Language :: Python :: 3",
                                   "Topic :: Scientific/Engineering",],
-                     requires=['matplotlib',
-                               "kshramt"])
+                     install_requires=[
+                         'matplotlib',
+                         'kshramt',
+                     ])
