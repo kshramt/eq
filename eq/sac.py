@@ -5,7 +5,7 @@
 
 import struct as _struct
 import unittest as _unittest
-import itertools
+import itertools as _itertools
 
 import pylab as _pylab
 
@@ -959,7 +959,7 @@ class _Tester(_unittest.TestCase):
             self.assertAlmostEqual(parsed, orig)
 
     def test_eq_ne(self):
-        for (constractor1, constractor2, w1, w2) in itertools.product(
+        for (constractor1, constractor2, w1, w2) in _itertools.product(
                 (parse, Sac),
                 (parse, Sac),
                 (self.S, self.B, self.D),
