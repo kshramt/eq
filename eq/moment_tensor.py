@@ -4,7 +4,8 @@ import functools
 from random import random
 import unittest
 
-from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
+from numpy import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, deg2rad, sign
+from numpy.linalg import eigh
 # from kshramt import pp
 
 

@@ -8,22 +8,22 @@ import unittest as _unittest
 import itertools as _itertools
 import random as _random
 
-import pylab as _pylab
-import numpy as _numpy
+import numpy as np
+
 
 class Error(Exception):
     pass
 
 
-FLOAT = _pylab.float32
-INTEGER = _pylab.int32
-COMPLEX = _pylab.complex64
+FLOAT = np.float32
+INTEGER = np.int32
+COMPLEX = np.complex64
+_INTEGER_MIN = np.iinfo(INTEGER).min
+_INTEGER_MAX = np.iinfo(INTEGER).max
+_FLOAT_MIN = np.finfo(FLOAT).min
+_FLOAT_MAX = np.finfo(FLOAT).max
 
 
-_INTEGER_MIN = _pylab.iinfo(INTEGER).min
-_INTEGER_MAX = _pylab.iinfo(INTEGER).max
-_FLOAT_MIN = _pylab.finfo(FLOAT).min
-_FLOAT_MAX = _pylab.finfo(FLOAT).max
 
 
 _N_BYTES_SHORT_STRING = 8
@@ -130,7 +130,7 @@ def _pad_space(b, n):
 
 
 def _assert_floats(xs):
-    assert _pylab.all(_FLOAT_MIN <= xs) and _pylab.all(xs <= _FLOAT_MAX)
+    assert np.all(_FLOAT_MIN <= xs) and np.all(xs <= _FLOAT_MAX)
     return xs
 
 
@@ -592,25 +592,25 @@ class Sac(object):
     def _internal_from_itime(self, xs):
         self._data = _assert_floats(xs)
         data = self.data
-        self.meta.npts = _pylab.size(data)
-        self.meta.depmin = _numpy.min(data)
-        self.meta.depmen = _numpy.mean(data)
-        self.meta.depmax = _numpy.max(data)
+        self.meta.npts = np.size(data)
+        self.meta.depmin = np.min(data)
+        self.meta.depmen = np.mean(data)
+        self.meta.depmax = np.max(data)
 
     def _ixy_from_internal(self):
         """
         [y1, y2, ..., x1, x2, ...] -> [[x1, y1], [x2, y2], ...]
         """
         _data = self._data
-        n__data = _pylab.size(_data)
+        n__data = np.size(_data)
         assert n__data%2 == 0
-        return _pylab.transpose(_pylab.reshape(_data, (2, n__data//2))[::-1])
+        return np.transpose(np.reshape(_data, (2, n__data//2))[::-1])
 
     def _internal_from_ixy(self, xys):
-        n_row, n_column = _pylab.shape(xys)
+        n_row, n_column = np.shape(xys)
         assert n_column == 2
         npts = n_row*n_column
-        self._data = _assert_floats(_pylab.reshape(_pylab.transpose(_assert_floats(xys))[::-1],
+        self._data = _assert_floats(np.reshape(np.transpose(_assert_floats(xys))[::-1],
                                                    (npts,)))
         self.meta.npts = npts
 
@@ -623,13 +623,13 @@ class Sac(object):
         assert n_xs%2 == 0
         rs = xs[:n_xs//2]
         ts = xs[n_xs//2:]
-        return rs*_pylab.exp(1j*ts)
+        return rs*np.exp(1j*ts)
 
     @staticmethod
     def _internal_from_iamph(cs):
-        rs = _pylab.absolute(cs)
-        ts = _pylab.angle(cs)
-        return _assert_floats(_pylab.concatenate((rs, ts)))
+        rs = np.absolute(cs)
+        ts = np.angle(cs)
+        return _assert_floats(np.concatenate((rs, ts)))
 
     @staticmethod
     def _irlim_from_internal(xs):
@@ -642,7 +642,7 @@ class Sac(object):
 
     @staticmethod
     def _internal_from_irlim(cs):
-        return _assert_floats(_pylab.concatenate((_pylab.real(cs), _pylab.imag(cs))))
+        return _assert_floats(np.concatenate((np.real(cs), np.imag(cs))))
 
 
 class _Tester(_unittest.TestCase):
@@ -968,12 +968,12 @@ class _Tester(_unittest.TestCase):
         w = Sac(self.S)
         w.iftype = 'itime'
         for _ in range(10):
-            data = _pylab.randn(_random.randint(100, 200))
+            data = np.random.randn(_random.randint(100, 200))
             w.data = data
-            self.assertEqual(w.meta.npts, _pylab.size(data))
-            self.assertAlmostEqual(w.meta.depmin, _numpy.min(data))
-            self.assertAlmostEqual(w.meta.depmen, _numpy.mean(data))
-            self.assertAlmostEqual(w.meta.depmax, _numpy.max(data))
+            self.assertEqual(w.meta.npts, np.size(data))
+            self.assertAlmostEqual(w.meta.depmin, np.min(data))
+            self.assertAlmostEqual(w.meta.depmen, np.mean(data))
+            self.assertAlmostEqual(w.meta.depmax, np.max(data))
 
     def test_eq_ne(self):
         for (constractor1, constractor2, w1, w2) in _itertools.product(
