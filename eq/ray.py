@@ -11,6 +11,35 @@ N_REFLECT_MAX = 3
 
 def _eta(u, p):
     return np.sqrt(u**2 - p**2)
+def X_step(p, layers):
+    hs, us = _parse_layers_T_X_step(layers)
+    i_reflect = _i_reflect_T_X_step(p, us)
+    if not(i_reflect is None):
+        return 2*p*np.sum(h/_eta(u, p) for h, u in zip(hs[0:i_reflect], us))
+
+
+def T_step(p, layers):
+    hs, us = _parse_layers_T_X_step(layers)
+    i_reflect = _i_reflect_T_X_step(p, us)
+    if not(i_reflect is None):
+        return 2*np.sum(h*u**2/_eta(u, p) for h, u in zip(hs[0:i_reflect], us))
+
+
+def _i_reflect_T_X_step(p, us):
+    for i_reflect, u in enumerate(us):
+        if not _is_incident(p, u):
+            return i_reflect
+
+
+def _parse_layers_T_X_step(layers):
+    hs = []
+    us = []
+    for h, v in layers:
+        hs.append(h)
+        us.append(1/v)
+    return hs, us
+
+
 def ray_path_1d_step(t, x, y, theta, is_down, layers):
     assert layers
     path = [(t, x, y)]
@@ -146,6 +175,17 @@ def _get_i_layer_impl(boundaries, y):
 
 
 class Tester(unittest.TestCase):
+
+    def test_T_X_step(self):
+        hs = (1, 2, 3, 4, 5, 6)
+        vs = (1, 1.1, 1.2, 1.3, 1.4, 100)
+        layers = list(zip(hs, vs))
+        p = 0.4
+        theta = np.arcsin(p*vs[0])
+        t, x, y = ray_path_1d_step(0, 0, 0, theta, True, layers)['path'][-1]
+        self.assertAlmostEqual(T_step(p, layers), t)
+        self.assertAlmostEqual(X_step(p, layers), x)
+        self.assertAlmostEqual(0, y)
 
     def test_ray_path_1d_step(self):
         hs = (1, 2, 3, 4, 5, 6)
