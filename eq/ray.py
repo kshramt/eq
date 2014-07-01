@@ -7,6 +7,10 @@ HALF_PI = np.pi/2
 N_REFLECT_MAX = 3
 
 
+
+
+def _eta(u, p):
+    return np.sqrt(u**2 - p**2)
 def ray_path_1d_step(t, x, y, theta, is_down, layers):
     assert layers
     path = [(t, x, y)]
@@ -109,9 +113,8 @@ def _is_reflection(p, u):
 
 def _update_t_x_y_1d_step(t, x, y, dy, p, u):
     abs_dy = np.absolute(dy)
-    u2 = u**2
-    eta = np.sqrt(u2 - p**2)
-    return t + abs_dy*u2/eta, x + abs_dy*p/eta, y + dy
+    eta = _eta(u, p)
+    return t + abs_dy*u**2/eta, x + abs_dy*p/eta, y + dy
 
 
 def _get_boundaries(hs):
@@ -151,24 +154,23 @@ class Tester(unittest.TestCase):
         layers = list(zip(hs, vs))
         theta = HALF_PI/2
         p = np.sin(theta)/vs[1]
-        p2 = p**2
 
         # down
         path = ray_path_1d_step(1, 3, 2, theta, True, layers)['path']
         t, x, y = path[4]
         self.assertAlmostEqual(t,
                                1 +
-                               1/vs[1]**2/np.sqrt(1/vs[1]**2 - p2) +
-                               3/vs[2]**2/np.sqrt(1/vs[2]**2 - p2) +
-                               4/vs[3]**2/np.sqrt(1/vs[3]**2 - p2) +
-                               5/vs[4]**2/np.sqrt(1/vs[4]**2 - p2))
+                               1/vs[1]**2/_eta(1/vs[1], p) +
+                               3/vs[2]**2/_eta(1/vs[2], p) +
+                               4/vs[3]**2/_eta(1/vs[3], p) +
+                               5/vs[4]**2/_eta(1/vs[4], p))
         self.assertAlmostEqual(x,
                                3 +
                                p*
-                               (1/np.sqrt(1/vs[1]**2 - p2) +
-                                3/np.sqrt(1/vs[2]**2 - p2) +
-                                4/np.sqrt(1/vs[3]**2 - p2) +
-                                5/np.sqrt(1/vs[4]**2 - p2)))
+                               (1/_eta(1/vs[1], p) +
+                                3/_eta(1/vs[2], p) +
+                                4/_eta(1/vs[3], p) +
+                                5/_eta(1/vs[4], p)))
         self.assertAlmostEqual(y, 15)
 
         # up
@@ -176,17 +178,17 @@ class Tester(unittest.TestCase):
         t, x, y = path[4]
         self.assertAlmostEqual(t,
                                1 +
-                               1/vs[1]**2/np.sqrt(1/vs[1]**2 - p2) +
-                               3/vs[2]**2/np.sqrt(1/vs[2]**2 - p2) +
-                               4/vs[3]**2/np.sqrt(1/vs[3]**2 - p2) +
-                               5/vs[4]**2/np.sqrt(1/vs[4]**2 - p2))
+                               1/vs[1]**2/_eta(1/vs[1], p) +
+                               3/vs[2]**2/_eta(1/vs[2], p) +
+                               4/vs[3]**2/_eta(1/vs[3], p) +
+                               5/vs[4]**2/_eta(1/vs[4], p))
         self.assertAlmostEqual(x,
                                3 +
                                p*
-                               (1/np.sqrt(1/vs[1]**2 - p2) +
-                                3/np.sqrt(1/vs[2]**2 - p2) +
-                                4/np.sqrt(1/vs[3]**2 - p2) +
-                                5/np.sqrt(1/vs[4]**2 - p2)))
+                               (1/_eta(1/vs[1], p) +
+                                3/_eta(1/vs[2], p) +
+                                4/_eta(1/vs[3], p) +
+                                5/_eta(1/vs[4], p)))
         self.assertAlmostEqual(y, 6)
 
 
