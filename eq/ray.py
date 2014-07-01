@@ -142,16 +142,6 @@ def _get_i_layer_impl(boundaries, y):
         return 0
 
 
-def _is_ascending(xs):
-    if len(xs) >= 2:
-        x_ = xs[0]
-        for x in xs[1:]:
-            if x_ > x:
-                return False
-            x_ = x
-    return True
-
-
 class Tester(unittest.TestCase):
 
     def test_ray_path_1d_step(self):
