@@ -9,20 +9,30 @@ N_REFLECT_MAX = 3
 
 
 
+def _kernel_t_step(u, p):
+        return u**2/_eta(u, p)
+
+
+def _kernel_x_step(u, p):
+    return p/_eta(u, p)
+
+
 def _eta(u, p):
     return np.sqrt(u**2 - p**2)
-def X_step(p, layers):
-    hs, us = _parse_layers_T_X_step(layers)
-    i_reflect = _i_reflect_T_X_step(p, us)
-    if not(i_reflect is None):
-        return 2*p*np.sum(h/_eta(u, p) for h, u in zip(hs[0:i_reflect], us))
 
 
 def T_step(p, layers):
     hs, us = _parse_layers_T_X_step(layers)
     i_reflect = _i_reflect_T_X_step(p, us)
     if not(i_reflect is None):
-        return 2*np.sum(h*u**2/_eta(u, p) for h, u in zip(hs[0:i_reflect], us))
+        return 2*np.sum(h*_kernel_t_step(u, p) for h, u in zip(hs[0:i_reflect], us))
+
+
+def X_step(p, layers):
+    hs, us = _parse_layers_T_X_step(layers)
+    i_reflect = _i_reflect_T_X_step(p, us)
+    if not(i_reflect is None):
+        return 2*np.sum(h*_kernel_x_step(u, p) for h, u in zip(hs[0:i_reflect], us))
 
 
 def _i_reflect_T_X_step(p, us):
@@ -142,8 +152,7 @@ def _is_reflection(p, u):
 
 def _update_t_x_y_1d_step(t, x, y, dy, p, u):
     abs_dy = np.absolute(dy)
-    eta = _eta(u, p)
-    return t + abs_dy*u**2/eta, x + abs_dy*p/eta, y + dy
+    return t + abs_dy*_kernel_t_step(u, p), x + abs_dy*_kernel_x_step(u, p), y + dy
 
 
 def _get_boundaries(hs):
