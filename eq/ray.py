@@ -10,14 +10,14 @@ N_REFLECT_MAX = 3
 
 
 def _kernel_t_step(u, p):
-        return u**2/_eta(u, p)
+        return u**2/_vertical_slowness(u, p)
 
 
 def _kernel_x_step(u, p):
-    return p/_eta(u, p)
+    return p/_vertical_slowness(u, p)
 
 
-def _eta(u, p):
+def _vertical_slowness(u, p):
     return np.sqrt(u**2 - p**2)
 
 
@@ -209,17 +209,17 @@ class Tester(unittest.TestCase):
         t, x, y = path[4]
         self.assertAlmostEqual(t,
                                1 +
-                               1/vs[1]**2/_eta(1/vs[1], p) +
-                               3/vs[2]**2/_eta(1/vs[2], p) +
-                               4/vs[3]**2/_eta(1/vs[3], p) +
-                               5/vs[4]**2/_eta(1/vs[4], p))
+                               1/vs[1]**2/_vertical_slowness(1/vs[1], p) +
+                               3/vs[2]**2/_vertical_slowness(1/vs[2], p) +
+                               4/vs[3]**2/_vertical_slowness(1/vs[3], p) +
+                               5/vs[4]**2/_vertical_slowness(1/vs[4], p))
         self.assertAlmostEqual(x,
                                3 +
                                p*
-                               (1/_eta(1/vs[1], p) +
-                                3/_eta(1/vs[2], p) +
-                                4/_eta(1/vs[3], p) +
-                                5/_eta(1/vs[4], p)))
+                               (1/_vertical_slowness(1/vs[1], p) +
+                                3/_vertical_slowness(1/vs[2], p) +
+                                4/_vertical_slowness(1/vs[3], p) +
+                                5/_vertical_slowness(1/vs[4], p)))
         self.assertAlmostEqual(y, 15)
 
         # up
@@ -227,17 +227,17 @@ class Tester(unittest.TestCase):
         t, x, y = path[4]
         self.assertAlmostEqual(t,
                                1 +
-                               1/vs[1]**2/_eta(1/vs[1], p) +
-                               3/vs[2]**2/_eta(1/vs[2], p) +
-                               4/vs[3]**2/_eta(1/vs[3], p) +
-                               5/vs[4]**2/_eta(1/vs[4], p))
+                               1/vs[1]**2/_vertical_slowness(1/vs[1], p) +
+                               3/vs[2]**2/_vertical_slowness(1/vs[2], p) +
+                               4/vs[3]**2/_vertical_slowness(1/vs[3], p) +
+                               5/vs[4]**2/_vertical_slowness(1/vs[4], p))
         self.assertAlmostEqual(x,
                                3 +
                                p*
-                               (1/_eta(1/vs[1], p) +
-                                3/_eta(1/vs[2], p) +
-                                4/_eta(1/vs[3], p) +
-                                5/_eta(1/vs[4], p)))
+                               (1/_vertical_slowness(1/vs[1], p) +
+                                3/_vertical_slowness(1/vs[2], p) +
+                                4/_vertical_slowness(1/vs[3], p) +
+                                5/_vertical_slowness(1/vs[4], p)))
         self.assertAlmostEqual(y, 6)
 
 
