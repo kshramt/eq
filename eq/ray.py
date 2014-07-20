@@ -10,7 +10,7 @@ N_REFLECT_MAX = 3
 
 
 def _kernel_t_step(u, p):
-        return u**2/_vertical_slowness(u, p)
+    return u**2/_vertical_slowness(u, p)
 
 
 def _kernel_x_step(u, p):
