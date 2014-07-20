@@ -9,6 +9,36 @@ N_REFLECT_MAX = 3
 
 
 
+class Layer(object):
+
+    def __init__(self, z_top, z_bottom):
+        self.z_top = z_top
+        self.z_bottom = z_bottom
+        assert self.z_top > self.z_bottom
+        self.h = z_top - z_bottom
+
+
+
+class BoxyLayer(Layer):
+
+    def __init__(self, z_top, z_bottom, v):
+        super().__init__(z_top, z_bottom)
+        self.v = v
+        self.u = 1/self.v
+
+
+class LinearLayer(Layer):
+
+    def __init__(self, z_top, z_bottom, v_top, v_bottom):
+        super().__init__(z_top, z_bottom)
+        self.v_top = v_top
+        assert self.v_top > 0
+        self.u_top = 1/self.v_top
+        self.v_bottom = v_bottom
+        assert self.v_bottom > 0
+        self.u_bottom = 1/self.v_bottom
+
+
 def _kernel_t_step(u, p):
     return u**2/_vertical_slowness(u, p)
 
