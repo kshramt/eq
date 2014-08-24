@@ -383,18 +383,9 @@ class MomentTensor(object):
                  [0.0, 0.0, 1.0]]
         Psdr = np.dot(Pstrike, dot(Pdip, Prake))
         m1, m2, m3 = self.ms_rotateion[0]
-        amplitudes = []
-        for i_p1, i_p2, i_p3 in triangles:
-            x1, y1, z1 = points[i_p1]
-            x2, y2, z2 = points[i_p2]
-            x3, y3, z3 = points[i_p3]
-            x = (x1 + x2 + x3)/3
-            y = (y1 + y2 + y3)/3
-            z = (z1 + z2 + z3)/3
-            amplitudes.append(_amplitude(x, y, z, m2, m3))
         return ([np.dot(Psdr, xyz) for xyz in points],
                 triangles,
-                amplitudes)
+                _amplitudes_of_triangles(points, triangles, m2, m3))
 
 _rtf = MomentTensor.XYZ_SIGN_FROM_RTF.keys()
 for rtf1 in _rtf:
@@ -441,6 +432,19 @@ def _sign(x):
         return 0
 
 
+def _amplitudes_of_triangles(points, triangles, m2, m3):
+    amplitudes = []
+    for i_p1, i_p2, i_p3 in triangles:
+        x1, y1, z1 = points[i_p1]
+        x2, y2, z2 = points[i_p2]
+        x3, y3, z3 = points[i_p3]
+        x = (x1 + x2 + x3)/3
+        y = (y1 + y2 + y3)/3
+        z = (z1 + z2 + z3)/3
+        amplitudes.append(_amplitude(x, y, z, m2, m3))
+    return amplitudes
+
+
 def amplitude(x, y, z, m1, m2, m3):
     assert m1 <= m2 <= m3
     m_iso = m1 + m2 + m3
@@ -449,9 +453,11 @@ def amplitude(x, y, z, m1, m2, m3):
 
 
 def _amplitude(x, y, z, m2, m3):
+    half_z_minus_x = (z - x)/2
+    y_inv_sqrt2 = y*_INV_SQRT2
     return (m3*_amplitude_single(_get_theta(z), _get_phi(x, y)) +
-            m2*_amplitude_single(_get_theta((z - x)/2 + y/_SQRT2),
-                                 _get_phi((x - z)/2 + y/_SQRT2, -(x + z)/_SQRT2)))
+            m2*_amplitude_single(_get_theta(half_z_minus_x + y_inv_sqrt2),
+                                 _get_phi(y_inv_sqrt2 - half_z_minus_x, -(x + z)*_INV_SQRT2)))
 
 
 def _amplitude_single(theta, phi):
