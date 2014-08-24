@@ -400,6 +400,45 @@ for rtf1 in _rtf:
         setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
 
 
+def merge_amplitude_distribution(points_triangles_amplitudess):
+    points = []
+    triangles = []
+    amplitudes = []
+    i = 0
+    for p, t, a in points_triangles_amplitudess:
+        points.extend(p)
+        triangles.extend((i1 + i, i2 + i, i3 + i) for i1, i2, i3 in t)
+        i += len(p)
+        amplitudes.extend(a)
+    return (points, triangles, amplitudes)
+
+
+def vtk(points, triangles, amplitudes):
+    return '\n'.join(['# vtk DataFile Version 3.0',
+                      'beachball',
+                      'ASCII',
+                      'DATASET POLYDATA',
+                      'POINTS {} FLOAT'.format(len(points)),
+                      '\n'.join('{}\t{}\t{}'.format(x, y, z)
+                                for x, y, z in points),
+                      'POLYGONS {} {}'.format(len(triangles), 4*len(triangles)),
+                      '\n'.join('3\t{}\t{}\t{}'.format(i1, i2, i3)
+                                for i1, i2, i3 in triangles),
+                      'CELL_DATA {}'.format(len(triangles)),
+                      'SCALARS polarity int 1',
+                      'LOOKUP_TABLE default',
+                      '\n'.join(str(_sign(a))
+                                for a in amplitudes)])
+
+def _sign(x):
+    if x > 0:
+        return 1
+    elif x < 0:
+        return -1
+    else:
+        return 0
+
+
 def amplitude(x, y, z, m1, m2, m3):
     assert m1 <= m2 <= m3
     m_iso = m1 + m2 + m3
