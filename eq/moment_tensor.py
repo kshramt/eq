@@ -118,6 +118,8 @@ class MomentTensor(object):
             ret.mxyz = self.mxyz
             ret += other
             return ret
+        else:
+            return NotImplemented
 
     @property
     def moment(self):
