@@ -3,9 +3,11 @@ import operator
 import functools
 from random import random
 import unittest
+import numpy as np
 
 from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
-# from kshramt import pp
+
+import kshramt
 
 
 class Error(Exception):
@@ -365,10 +367,62 @@ class MomentTensor(object):
         return property(lambda self: sign_*getattr(self, xyz),
                         lambda self, value: setattr(self, xyz, sign_*value))
 
+    def amplitude_distribution(self, order=5):
+        triangles, points = kshramt.sphere_mesh(n=order, r=1, base=20)
+        strike, dip, rake = self.strike_dip_rake
+        Pstrike = [[np.cos(strike), 0.0, -np.sin(strike)],
+                   [0.0,            1.0,  0.0],
+                   [np.sin(strike), 0.0,  np.cos(strike)]]
+        Pdip = [[1.0, 0.0,          0.0],
+                [0.0, np.cos(dip), -np.sin(dip)],
+                [0.0, np.sin(dip),  np.cos(dip)]]
+        Prake = [[np.cos(rake), 0.0, -np.sin(rake)],
+                 [0.0,          1.0,  0.0],
+                 [np.sin(rake), 0.0,  np.cos(rake)]]
+        Psdr = np.dot(Pstrike, dot(Pdip, Prake))
+        m1, m2, m3 = self.ms_rotateion[0]
+        amplitudes = []
+        for i_p1, i_p2, i_p3 in triangles:
+            x1, y1, z1 = points[i_p1]
+            x2, y2, z2 = points[i_p2]
+            x3, y3, z3 = points[i_p3]
+            x = (x1 + x2 + x3)/3
+            y = (y1 + y2 + y3)/3
+            z = (z1 + z2 + z3)/3
+            amplitudes.append(_amplitude(x, y, z, m2, m3))
+        return ([np.dot(Psdr, xyz) for xyz in points],
+                triangles,
+                amplitudes)
+
 _rtf = MomentTensor.XYZ_SIGN_FROM_RTF.keys()
 for rtf1 in _rtf:
     for rtf2 in _rtf:
         setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
+
+
+def amplitude(x, y, z, m1, m2, m3):
+    assert m1 <= m2 <= m3
+    m_iso = m1 + m2 + m3
+    r = np.sqrt(x**2 + y**2 + z**2)
+    return _amplitude(x/r, y/r, z/r, m2 - m_iso, m3 - m_iso)
+
+
+def _amplitude(x, y, z, m2, m3):
+    return (m3*_amplitude_single(_get_theta(z), _get_phi(x, y)) +
+            m2*_amplitude_single(_get_theta((z - x)/2 + y/_SQRT2),
+                                 _get_phi((x - z)/2 + y/_SQRT2, -(x + z)/_SQRT2)))
+
+
+def _amplitude_single(theta, phi):
+    return np.sin(2*theta)*np.cos(phi)
+
+
+def _get_theta(z):
+    return np.arccos(z)
+
+
+def _get_phi(x, y):
+    return np.arctan2(y, x)
 
 
 class Tester(unittest.TestCase):
