@@ -369,16 +369,17 @@ class MomentTensor(object):
 
     def amplitude_distribution(self, order=5):
         triangles, points = kshramt.sphere_mesh(n=order, r=1, base=20)
-        strike, dip, rake = self.strike_dip_rake
-        Pstrike = [[np.cos(strike), 0.0, -np.sin(strike)],
-                   [0.0,            1.0,  0.0],
-                   [np.sin(strike), 0.0,  np.cos(strike)]]
-        Pdip = [[1.0, 0.0,          0.0],
+        strike, dip, rake = np.deg2rad(self.strike_dip_rake)
+        strike = np.pi/2 - strike
+        Pstrike = [[np.cos(strike), -np.sin(strike), 0.0],
+                   [np.sin(strike), np.cos(strike), 0.0],
+                   [0.0, 0.0, 1.0]]
+        Pdip = [[1.0, 0.0, 0.0],
                 [0.0, np.cos(dip), -np.sin(dip)],
-                [0.0, np.sin(dip),  np.cos(dip)]]
-        Prake = [[np.cos(rake), 0.0, -np.sin(rake)],
-                 [0.0,          1.0,  0.0],
-                 [np.sin(rake), 0.0,  np.cos(rake)]]
+                [0.0, np.sin(dip), np.cos(dip)]]
+        Prake = [[np.cos(rake), -np.sin(rake), 0.0],
+                 [np.sin(rake), np.cos(rake), 0.0],
+                 [0.0, 0.0, 1.0]]
         Psdr = np.dot(Pstrike, dot(Pdip, Prake))
         m1, m2, m3 = self.ms_rotateion[0]
         amplitudes = []
