@@ -3,6 +3,7 @@ import operator
 import functools
 from random import random
 import unittest
+import math
 import numpy as np
 
 from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
@@ -454,15 +455,15 @@ def _amplitude(x, y, z, m2, m3):
 
 
 def _amplitude_single(theta, phi):
-    return np.sin(2*theta)*np.cos(phi)
+    return math.sin(2*theta)*math.cos(phi)
 
 
 def _get_theta(z):
-    return np.arccos(z)
+    return math.acos(z)
 
 
 def _get_phi(x, y):
-    return np.arctan2(y, x)
+    return math.atan2(y, x)
 
 
 class Tester(unittest.TestCase):
