@@ -381,7 +381,7 @@ class MomentTensor(object):
         Prake = [[np.cos(rake), -np.sin(rake), 0.0],
                  [np.sin(rake), np.cos(rake), 0.0],
                  [0.0, 0.0, 1.0]]
-        Psdr = np.dot(Pstrike, dot(Pdip, Prake))
+        Psdr = self._dots(Pstrike, Pdip, Prake)
         m1, m2, m3 = self.ms_rotateion[0]
         return ([np.dot(Psdr, xyz) for xyz in points],
                 triangles,
@@ -466,7 +466,6 @@ def _amplitude_single(theta, phi):
 
 def _get_theta(z):
     return math.acos(z)
-
 
 def _get_phi(x, y):
     return math.atan2(y, x)
