@@ -4,7 +4,7 @@ import functools
 from random import random
 import unittest
 import math
-from math import sqrt, cos, sin
+from math import sqrt, cos, sin, acos, atan2
 import numpy as np
 from numpy import dot
 
@@ -482,10 +482,11 @@ def _amplitude_single(theta, phi):
 
 
 def _get_theta(z):
-    return math.acos(z)
+    return acos(z)
+
 
 def _get_phi(x, y):
-    return math.atan2(y, x)
+    return atan2(y, x)
 
 
 class Tester(unittest.TestCase):
