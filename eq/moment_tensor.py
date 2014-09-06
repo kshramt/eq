@@ -433,6 +433,7 @@ def vtk(points, triangles, amplitudes):
                       '\n'.join(str(_sign(a))
                                 for a in amplitudes)])
 
+
 def _sign(x):
     if x > 0:
         return 1
@@ -458,16 +459,22 @@ def _amplitudes_of_triangles(points, triangles, m2, m3):
 def amplitude(x, y, z, m1, m2, m3):
     assert m1 <= m2 <= m3
     m_iso = m1 + m2 + m3
-    r = sqrt(x**2 + y**2 + z**2)
-    return _amplitude(x/r, y/r, z/r, m2 - m_iso, m3 - m_iso)
+    return _amplitude(x, y, z, m2 - m_iso, m3 - m_iso)
 
 
 def _amplitude(x, y, z, m2, m3):
-    half_z_minus_x = (z - x)/2
-    y_inv_sqrt2 = y*_INV_SQRT2
-    return (m3*_amplitude_single(_get_theta(z), _get_phi(x, y)) +
-            m2*_amplitude_single(_get_theta(half_z_minus_x + y_inv_sqrt2),
-                                 _get_phi(y_inv_sqrt2 - half_z_minus_x, -(x + z)*_INV_SQRT2)))
+    r = sqrt(x*x + y*y + z*z)
+    a = x/r
+    b = y/r
+    c = z/r
+    half_c_minus_a = (c - a)/2
+    b_inv_sqrt2 = b*_INV_SQRT2
+    d = b_inv_sqrt2 - half_c_minus_a
+    e = -(a + c)*_INV_SQRT2
+    f = half_c_minus_a + b_inv_sqrt2
+    # avoiding atan2 or acos here will not improve performance
+    return (m3*_amplitude_single(_get_theta(c), _get_phi(a, b)) +
+            m2*_amplitude_single(_get_theta(f), _get_phi(d, e)))
 
 
 def _amplitude_single(theta, phi):
