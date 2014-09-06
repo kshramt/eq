@@ -3,9 +3,11 @@ import operator
 import functools
 from random import random
 import unittest
+from math import sqrt, cos, sin, acos, atan2
+import numpy as np
+from numpy import dot
 
-from pylab import sqrt, dot, transpose, arccos, sin, arctan2, absolute, cos, rad2deg, eigh, deg2rad, sign
-# from kshramt import pp
+import kshramt
 
 
 class Error(Exception):
@@ -52,6 +54,9 @@ class MomentTensor(object):
         self.xy = 0
         self.xz = 0
         self.yz = 0
+
+    def __repr__(self):
+        return 'class:{}\t{}'.format(self.__class__.__name__, self.__str__())
 
     def __str__(self):
         return 'xx:{}\tyy:{}\tzz:{}\txy:{}\txz:{}\tyz:{}'.format(self.xx, self.yy, self.zz, self.xy, self.xz, self.yz)
@@ -115,6 +120,20 @@ class MomentTensor(object):
             ret.mxyz = self.mxyz
             ret += other
             return ret
+        else:
+            return NotImplemented
+
+    @property
+    def magnitude(self, unit='Nm'):
+        """
+        moment (Nm)
+        """
+        if unit == 'Nm':
+            return (np.log10(self.moment) + 7)/1.5 - 10.7
+        elif unit == 'dynecm':
+            return np.log10(self.moment)/1.5 - 10.7
+        else:
+            return NotImplemented
 
     @property
     def moment(self):
@@ -150,7 +169,7 @@ class MomentTensor(object):
                                ((-m0, 0, 0),
                                 (0, 0, 0),
                                 (0, 0, m0)),
-                               transpose(R))
+                               np.transpose(R))
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
         if dip > 90: # 0 <= dip <= 90
@@ -197,24 +216,24 @@ class MomentTensor(object):
 
         # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
         cos_dip = R33
-        if absolute(cos_dip) > 1: # todo: is this ok?
-            _error(absolute(cos_dip) > 1 + 1e-7, 'absolute(cos_dip) > 1 + 1e-7: {}', cos_dip)
-            cos_dip = sign(cos_dip)
-        dip = arccos(cos_dip)
+        if abs(cos_dip) > 1: # todo: is this ok?
+            _error(abs(cos_dip) > 1 + 1e-7, 'abs(cos_dip) > 1 + 1e-7: {}', cos_dip)
+            cos_dip = _sign(cos_dip)
+        dip = np.arccos(cos_dip)
         sin_dip = sin(dip)
-        if absolute(sin_dip) <= 1e-7: # todo: better threshold
+        if abs(sin_dip) <= 1e-7: # todo: better threshold
             rake = 0
-            strike = arctan2(R12, R22)
+            strike = np.arctan2(R12, R22)
         else:
-            strike = arctan2(-R23, R13)
+            strike = np.arctan2(-R23, R13)
             sin_strike = -R23/sin_dip
             sin_rake = R32/sin_dip
-            if _INV_SQRT2 <= absolute(sin_strike):
-                rake = arctan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
+            if _INV_SQRT2 <= abs(sin_strike):
+                rake = np.arctan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
             else:
-                rake = arctan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
+                rake = np.arctan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
 
-        return self._correction_strike_dip_rake(rad2deg(strike), rad2deg(dip), rad2deg(rake))
+        return self._correction_strike_dip_rake(np.rad2deg(strike), np.rad2deg(dip), np.rad2deg(rake))
 
     def _strike_dip_rakes(self, m):
         """
@@ -224,13 +243,13 @@ class MomentTensor(object):
         where (strike2, dip2, rake2) could be unstable.
         """
         _, R = self._sorted_eig(m)
-        R_yz = dot(R, transpose(self._R_yz_from_xx_zz))
+        R_yz = dot(R, np.transpose(self._R_yz_from_xx_zz))
         R_yz_conjugate = dot(R,
-                             transpose(dot(self._R_conjugate_for_yz,
-                                           self._R_yz_from_xx_zz)))
+                             np.transpose(dot(self._R_conjugate_for_yz,
+                                              self._R_yz_from_xx_zz)))
         sdr1 = self._strike_dip_rake_from_R_yz(R_yz)
         sdr2 = self._strike_dip_rake_from_R_yz(R_yz_conjugate)
-        if absolute(R_yz[2][2]) <= _INV_SQRT2:
+        if abs(R_yz[2][2]) <= _INV_SQRT2:
             return sdr1, sdr2
         else:
             return sdr2, sdr1
@@ -241,9 +260,9 @@ class MomentTensor(object):
 
     @classmethod
     def _sorted_eig(cls, m):
-        es, vs = eigh(m)
+        es, vs = np.linalg.eigh(m)
         es, is_ = cls._sorted_i(es)
-        return es, transpose(cls._update_by_indices(transpose(vs), is_))
+        return es, np.transpose(cls._update_by_indices(np.transpose(vs), is_))
 
     @staticmethod
     def _update_by_indices(xs, is_):
@@ -339,17 +358,21 @@ class MomentTensor(object):
 
     @staticmethod
     def _rotate_xy(theta):
-        t = deg2rad(theta)
-        return ((cos(t), -sin(t), 0),
-                (sin(t), cos(t), 0),
+        t = np.deg2rad(theta)
+        cos_t = cos(t)
+        sin_t = sin(t)
+        return ((cos_t, -sin_t, 0),
+                (sin_t, cos_t, 0),
                 (0, 0, 1))
 
     @staticmethod
     def _rotate_xz(theta):
-        t = deg2rad(theta)
-        return ((cos(t), 0, -sin(t)),
+        t = np.deg2rad(theta)
+        cos_t = cos(t)
+        sin_t = sin(t)
+        return ((cos_t, 0, -sin_t),
                 (0, 1, 0),
-                (sin(t), 0, cos(t)))
+                (sin_t, 0, cos_t))
 
     @staticmethod
     def make_rtf_property(rtf1, rtf2):
@@ -360,17 +383,128 @@ class MomentTensor(object):
         return property(lambda self: sign_*getattr(self, xyz),
                         lambda self, value: setattr(self, xyz, sign_*value))
 
+    def amplitude_distribution(self, order=5):
+        triangles, points = kshramt.sphere_mesh(n=order, r=1, base=20)
+        strike, dip, rake = np.deg2rad(self.strike_dip_rake)
+        strike = np.pi/2 - strike
+        cos_strike = cos(strike)
+        sin_strike = sin(strike)
+        Pstrike = [[cos_strike, -sin_strike, 0.0],
+                   [sin_strike, cos_strike, 0.0],
+                   [0.0, 0.0, 1.0]]
+        cos_dip = cos(dip)
+        sin_dip = sin(dip)
+        Pdip = [[1.0, 0.0, 0.0],
+                [0.0, cos_dip, -sin_dip],
+                [0.0, sin_dip, cos_dip]]
+        cos_rake = cos(rake)
+        sin_rake = sin(rake)
+        Prake = [[cos_rake, -sin_rake, 0.0],
+                 [sin_rake, cos_rake, 0.0],
+                 [0.0, 0.0, 1.0]]
+        Psdr = self._dots(Pstrike, Pdip, Prake)
+        m1, m2, m3 = self.ms_rotateion[0]
+        return ([dot(Psdr, xyz) for xyz in points],
+                triangles,
+                _amplitudes_of_triangles(points, triangles, m2, m3))
+
 _rtf = MomentTensor.XYZ_SIGN_FROM_RTF.keys()
 for rtf1 in _rtf:
     for rtf2 in _rtf:
         setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
 
 
+def merge_amplitude_distribution(points_triangles_amplitudess):
+    points = []
+    triangles = []
+    amplitudes = []
+    i = 0
+    for p, t, a in points_triangles_amplitudess:
+        points.extend(p)
+        triangles.extend((i1 + i, i2 + i, i3 + i) for i1, i2, i3 in t)
+        i += len(p)
+        amplitudes.extend(a)
+    return (points, triangles, amplitudes)
+
+
+def vtk(points, triangles, amplitudes):
+    return '\n'.join(['# vtk DataFile Version 3.0',
+                      'beachball',
+                      'ASCII',
+                      'DATASET POLYDATA',
+                      'POINTS {} FLOAT'.format(len(points)),
+                      '\n'.join('{}\t{}\t{}'.format(x, y, z)
+                                for x, y, z in points),
+                      'POLYGONS {} {}'.format(len(triangles), 4*len(triangles)),
+                      '\n'.join('3\t{}\t{}\t{}'.format(i1, i2, i3)
+                                for i1, i2, i3 in triangles),
+                      'CELL_DATA {}'.format(len(triangles)),
+                      'SCALARS polarity int 1',
+                      'LOOKUP_TABLE default',
+                      '\n'.join(str(_sign(a))
+                                for a in amplitudes)])
+
+
+def _sign(x):
+    if x > 0:
+        return 1
+    elif x < 0:
+        return -1
+    else:
+        return 0
+
+
+def _amplitudes_of_triangles(points, triangles, m2, m3):
+    amplitudes = []
+    for i_p1, i_p2, i_p3 in triangles:
+        x1, y1, z1 = points[i_p1]
+        x2, y2, z2 = points[i_p2]
+        x3, y3, z3 = points[i_p3]
+        x = (x1 + x2 + x3)/3
+        y = (y1 + y2 + y3)/3
+        z = (z1 + z2 + z3)/3
+        amplitudes.append(_amplitude(x, y, z, m2, m3))
+    return amplitudes
+
+
+def amplitude(x, y, z, m1, m2, m3):
+    assert m1 <= m2 <= m3
+    m_iso = m1 + m2 + m3
+    return _amplitude(x, y, z, m2 - m_iso, m3 - m_iso)
+
+
+def _amplitude(x, y, z, m2, m3):
+    r = sqrt(x*x + y*y + z*z)
+    a = x/r
+    b = y/r
+    c = z/r
+    half_c_minus_a = (c - a)/2
+    b_inv_sqrt2 = b*_INV_SQRT2
+    d = b_inv_sqrt2 - half_c_minus_a
+    e = -(a + c)*_INV_SQRT2
+    f = half_c_minus_a + b_inv_sqrt2
+    # avoiding atan2 or acos here will not improve performance
+    return (m3*_amplitude_single(_get_theta(c), _get_phi(a, b)) +
+            m2*_amplitude_single(_get_theta(f), _get_phi(d, e)))
+
+
+def _amplitude_single(theta, phi):
+    return sin(2*theta)*cos(phi)
+
+
+def _get_theta(z):
+    return acos(z)
+
+
+def _get_phi(x, y):
+    return atan2(y, x)
+
+
 class Tester(unittest.TestCase):
 
     def is_almost_equal_angle(self, x, y):
         delta = 0.01
-        if absolute(x) > 180 - delta:
+        if abs(x) > 180 - delta:
             xl = x - delta
             xr = x + delta
             if xl < -180:
@@ -378,7 +512,7 @@ class Tester(unittest.TestCase):
             else:
                 return xl < y <= 180 or -180 <= y < xr - 360
         else:
-            return absolute(x - y) <= delta
+            return abs(x - y) <= delta
 
     def assert_almost_equal_angle(self, x, y):
         self.assertTrue(self.is_almost_equal_angle(x, y))
