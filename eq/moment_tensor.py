@@ -3,7 +3,6 @@ import operator
 import functools
 from random import random
 import unittest
-import math
 from math import sqrt, cos, sin, acos, atan2
 import numpy as np
 from numpy import dot
@@ -121,6 +120,18 @@ class MomentTensor(object):
             ret.mxyz = self.mxyz
             ret += other
             return ret
+        else:
+            return NotImplemented
+
+    @property
+    def magnitude(self, unit='Nm'):
+        """
+        moment (Nm)
+        """
+        if unit == 'Nm':
+            return (np.log10(self.moment) + 7)/1.5 - 10.7
+        elif unit == 'dynecm':
+            return np.log10(self.moment)/1.5 - 10.7
         else:
             return NotImplemented
 
