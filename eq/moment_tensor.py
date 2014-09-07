@@ -123,7 +123,6 @@ class MomentTensor(object):
         else:
             return NotImplemented
 
-    @property
     def magnitude(self, unit='Nm'):
         """
         moment (Nm)
