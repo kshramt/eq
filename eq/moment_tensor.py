@@ -13,6 +13,7 @@ import kshramt
 class Error(Exception):
     pass
 
+
 def _error(cond=True, msg='', *args):
     if cond:
         raise Error(msg.format(*args))
@@ -403,9 +404,10 @@ class MomentTensor(object):
                  [0.0, 0.0, 1.0]]
         Psdr = self._dots(Pstrike, Pdip, Prake)
         m1, m2, m3 = self.ms_rotateion[0]
+        m_iso = (m1 + m2 + m3)/3
         return ([dot(Psdr, xyz) for xyz in points],
                 triangles,
-                _amplitudes_of_triangles(points, triangles, m2, m3))
+                _amplitudes_of_triangles(points, triangles, m2 - m_iso, m3 - m_iso))
 
 _rtf = MomentTensor.XYZ_SIGN_FROM_RTF.keys()
 for rtf1 in _rtf:
