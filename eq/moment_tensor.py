@@ -7,7 +7,7 @@ from math import sqrt, cos, sin, acos, atan2
 import numpy as np
 from numpy import dot
 
-import kshramt
+import eq.kshramt
 
 
 class Error(Exception):
@@ -384,7 +384,7 @@ class MomentTensor(object):
                         lambda self, value: setattr(self, xyz, sign_*value))
 
     def amplitude_distribution(self, order=5):
-        triangles, points = kshramt.sphere_mesh(n=order, r=1, base=20)
+        triangles, points = eq.kshramt.sphere_mesh(n=order, r=1, base=20)
         strike, dip, rake = np.deg2rad(self.strike_dip_rake)
         strike = np.pi/2 - strike
         cos_strike = cos(strike)

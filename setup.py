@@ -21,5 +21,4 @@ distutils.core.setup(name='eq',
                                   "Topic :: Scientific/Engineering",],
                      requires=[
                          'matplotlib',
-                         'kshramt',
                      ])
