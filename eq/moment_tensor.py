@@ -415,7 +415,7 @@ for rtf1 in _rtf:
         setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
 
 
-def merge_amplitude_distribution(points_triangles_amplitudess):
+def merge_amplitude_distributions(points_triangles_amplitudess):
     points = []
     triangles = []
     amplitudes = []
