@@ -7,6 +7,7 @@ from math import sqrt, cos, sin, acos, atan2
 import numpy as np
 from numpy import dot
 
+import eq.util
 import eq.kshramt
 
 
@@ -161,15 +162,15 @@ class MomentTensor(object):
         else:
             _error(True, 'invalid argument: {}', sdr_m0)
 
-        R = _dots(self._rotate_xy(-strike),
-                  self._rotate_xz(-dip),
-                  self._rotate_xy(rake),
-                  self._R_yz_from_xx_zz)
-        self.mxyz = _dots(R,
-                          ((-m0, 0, 0),
-                           (0, 0, 0),
-                           (0, 0, m0)),
-                          np.transpose(R))
+        R = eq.util.dots(self._rotate_xy(-strike),
+                         self._rotate_xz(-dip),
+                         self._rotate_xy(rake),
+                         self._R_yz_from_xx_zz)
+        self.mxyz = eq.util.dots(R,
+                                 ((-m0, 0, 0),
+                                  (0, 0, 0),
+                                  (0, 0, m0)),
+                                 np.transpose(R))
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
         if dip > 90: # 0 <= dip <= 90
@@ -398,7 +399,7 @@ class MomentTensor(object):
         Prake = [[cos_rake, -sin_rake, 0.0],
                  [sin_rake, cos_rake, 0.0],
                  [0.0, 0.0, 1.0]]
-        Psdr = _dots(Pstrike, Pdip, Prake)
+        Psdr = eq.util.dots(Pstrike, Pdip, Prake)
         m1, m2, m3 = self.ms_rotateion[0]
         m_iso = (m1 + m2 + m3)/3
         return ([dot(Psdr, xyz) for xyz in points],
@@ -440,10 +441,6 @@ def vtk(points, triangles, amplitudes):
                       'LOOKUP_TABLE default',
                       '\n'.join(str(_sign(a))
                                 for a in amplitudes)])
-
-
-def _dots(*ms):
-    return functools.reduce(dot, ms)
 
 
 def _sign(x):
