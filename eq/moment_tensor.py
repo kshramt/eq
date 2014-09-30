@@ -491,42 +491,19 @@ def _get_phi(x, y):
 
 class Tester(unittest.TestCase):
 
-    def is_almost_equal_angle(self, x, y):
-        delta = 0.01
-        if abs(x) > 180 - delta:
-            xl = x - delta
-            xr = x + delta
-            if xl < -180:
-                return -180 <= y < xr or 360 + xl < y <= 180
-            else:
-                return xl < y <= 180 or -180 <= y < xr - 360
-        else:
-            return abs(x - y) <= delta
-
-    def assert_almost_equal_angle(self, x, y):
-        self.assertTrue(self.is_almost_equal_angle(x, y))
-
     def assert_almost_equal_plane(self, sdr1, sdr2):
         s1, d1, r1 = sdr1
         s2, d2, r2 = sdr2
-        s1, d1, r1 = self.m._correction_strike_dip_rake(s1, d1, r1)
-        if d1 == 0:
-            r1 = 0
-            s1 = s1 - r1
-        if self.is_almost_equal_angle(d2, 90):
-            try:
-                self.assert_almost_equal_angle(s1, s2)
-                self.assert_almost_equal_angle(d1, d2)
-                self.assert_almost_equal_angle(r1, r2)
-            except AssertionError:
-                s2 = (s2 - 180)%180
-                r2 = -r2
-                for x, y in ((s1, s2), (d1, d2), (r1, r2)):
-                    self.assert_almost_equal_angle(x, y)
-        else:
-            self.assert_almost_equal_angle(s1, s2)
-            self.assert_almost_equal_angle(d1, d2)
-            self.assert_almost_equal_angle(r1, r2)
+        m1 = MomentTensor()
+        m1.strike_dip_rake = sdr1
+        m2 = MomentTensor()
+        m2.strike_dip_rake = sdr2
+        self.assertAlmostEqual(m1.xx, m2.xx)
+        self.assertAlmostEqual(m1.yy, m2.yy)
+        self.assertAlmostEqual(m1.zz, m2.zz)
+        self.assertAlmostEqual(m1.xy, m2.xy)
+        self.assertAlmostEqual(m1.xz, m2.xz)
+        self.assertAlmostEqual(m1.yz, m2.yz)
 
     def assert_one_plane_is_ok(self, sdr, sdrs):
         #print('ORIG:\t{}\t{}\t{}'.format(*sdr), file=sys.stderr)
