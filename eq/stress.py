@@ -34,9 +34,10 @@ def normal_from_strike_dip(strike, dip):
 
 def from_alpha_beta_gamma_phi(alpha, beta, gamma, phi):
     assert 0 <= phi <= 1
+    inv_2_m_phi = 1e0/(2e0 - phi)
     D = ((1e0, 0e0, 0e0),
-         (0e0, (2e0*phi - 1e0)/(2e0 - phi), 0e0),
-         (0e0, 0e0, -(1e0 + phi)/(2e0 - phi)))
+         (0e0, (2e0*phi - 1e0)*inv_2_m_phi, 0e0),
+         (0e0, 0e0, -(1e0 + phi)*inv_2_m_phi))
     R = _R_alpha_beta_gamma(alpha, beta, gamma)
     return eq.util.dots(R, D, R.T)
 
