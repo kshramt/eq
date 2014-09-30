@@ -20,7 +20,7 @@ def rake_optimum(P, strike, dip):
     n = normal_from_strike_dip(strike, dip)
     t = traction(P, n)
     v = t - np.dot(t, n)*n
-    return eq.kshramt.sign(v[2])*acos(np.dot(v, (sin(strike), cos(strike), 0e0))/np.linalg.norm(v))
+    return eq.kshramt.sign(v[2])*acos(sin(strike)*v[0] + cos(strike)*v[1]/np.linalg.norm(v))
 
 
 def traction(P, n):
@@ -28,13 +28,8 @@ def traction(P, n):
 
 
 def normal_from_strike_dip(strike, dip):
-    R_strike = np.array(((cos(strike), sin(strike), 0e0),
-                         (-sin(strike), cos(strike), 0e0),
-                         (0e0, 0e0, 1e0)))
-    R_dip = np.array(((cos(dip), 0e0, sin(dip)),
-                      (0e0, 1e0, 0e0),
-                      (-sin(dip), 0e0, cos(dip))))
-    return eq.util.dots(R_strike, R_dip, (0e0, 0e0, 1e0))
+    sd = sin(dip)
+    return np.array((cos(strike)*sd, -sin(strike)*sd, cos(dip)))
 
 
 def from_alpha_beta_gamma_phi(alpha, beta, gamma, phi):
