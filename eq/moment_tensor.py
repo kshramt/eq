@@ -219,7 +219,7 @@ class MomentTensor(object):
         cos_dip = R33
         if abs(cos_dip) > 1: # todo: is this ok?
             _error(abs(cos_dip) > 1 + 1e-7, 'abs(cos_dip) > 1 + 1e-7: {}', cos_dip)
-            cos_dip = _sign(cos_dip)
+            cos_dip = eq.kshramt.sign(cos_dip)
         dip = np.arccos(cos_dip)
         sin_dip = sin(dip)
         if abs(sin_dip) <= 1e-7: # todo: better threshold
@@ -439,17 +439,8 @@ def vtk(points, triangles, amplitudes):
                       'CELL_DATA {}'.format(len(triangles)),
                       'SCALARS polarity int 1',
                       'LOOKUP_TABLE default',
-                      '\n'.join(str(_sign(a))
+                      '\n'.join(str(eq.kshramt.sign(a))
                                 for a in amplitudes)])
-
-
-def _sign(x):
-    if x > 0:
-        return 1
-    elif x < 0:
-        return -1
-    else:
-        return 0
 
 
 def _amplitudes_of_triangles(points, triangles, m2, m3):
