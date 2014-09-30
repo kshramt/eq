@@ -13,13 +13,14 @@ import numpy as np
 # import pandas as pd
 
 import eq.util
+import eq.kshramt
 
 
 def rake_optimum(P, strike, dip):
     n = normal_from_strike_dip(strike, dip)
     t = traction(P, n)
     v = t - np.dot(t, n)*n
-    return acos(np.dot(v, (sin(strike), cos(strike), 0e0))/np.linalg.norm(v))
+    return eq.kshramt.sign(v[2])*acos(np.dot(v, (sin(strike), cos(strike), 0e0))/np.linalg.norm(v))
 
 
 def traction(P, n):
