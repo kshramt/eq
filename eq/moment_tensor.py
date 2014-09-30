@@ -1,6 +1,5 @@
 # import sys
 import operator
-import functools
 from random import random
 import unittest
 from math import sqrt, cos, sin, acos, atan2
