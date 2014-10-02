@@ -10,12 +10,15 @@ import eq.kshramt
 
 
 HALF_PI = math.pi/2
+TWO_PI = math.pi*2
 FAULTING_TYPES = ('n', 'r', 'd', 's')
 
 
 def to_strike_dip_rake(f_az, f_pl, s_az, s_pl, faulting_type, comment=None):
     assert faulting_type in FAULTING_TYPES
     strike = f_az - HALF_PI
+    if strike > math.pi:
+        strike -= TWO_PI
     dip = f_pl
     s_az = HALF_PI - s_az
     cos_s = math.cos(s_pl)
