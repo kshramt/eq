@@ -98,8 +98,10 @@ def _test():
 
 class _Tester(unittest.TestCase):
 
-    def test_(self):
-        pass
+    def test_rake_optimum(self):
+        for dip in np.linspace(0.0001, np.pi/2 - 0.0001):
+            stress = from_alpha_beta_gamma_phi(0, np.pi, np.pi/2, 0.5)
+            self.assertAlmostEqual(rake_optimum(stress, np.pi/2, dip), np.pi/2)
 
 
 if __name__ == '__main__':
