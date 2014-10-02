@@ -4,8 +4,41 @@
 
 
 import unittest
+import math
 
 import eq.kshramt
+
+
+HALF_PI = math.pi/2
+FAULTING_TYPES = ('n', 'r', 'd', 's')
+
+
+def to_strike_dip_rake(f_az, f_pl, s_az, s_pl, faulting_type, comment=None):
+    assert faulting_type in FAULTING_TYPES
+    strike = f_az - HALF_PI
+    dip = f_pl
+    s_az = HALF_PI - s_az
+    cos_s = math.cos(s_pl)
+    s_x = cos_s*math.cos(s_az)
+    s_y = cos_s*math.sin(s_az)
+    f_x = math.sin(strike)
+    f_y = math.cos(strike)
+    rake = -math.acos(s_x*f_x + s_y*f_y)
+    if faulting_type == 'n':
+        pass
+    elif faulting_type == 'r':
+        rake += math.pi
+    elif faulting_type == 'd':
+        if rake > -HALF_PI:
+            rake += math.pi
+    elif faulting_type == 's':
+        if rake < -HALF_PI:
+            rake += math.pi
+    else:
+        error('must not happen')
+    return strike, dip, rake
+
+
 def load(fp):
     return (parse_record(line.rstrip('\n')) for line in fp)
 
@@ -22,6 +55,14 @@ def parse_record(line):
     if comment:
         ret['comment'] = comment[0]
     return ret
+
+
+class Error(Exception):
+    pass
+
+
+def error(msg=None):
+    raise Error(msg)
 
 
 class _Tester(unittest.TestCase):
