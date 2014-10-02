@@ -4,12 +4,12 @@ Assume tension is positive.
 
 
 import unittest
-import sys
 from math import sin, cos, acos
 # import re
 # import pickle
 
 import numpy as np
+import numpy.testing as npt
 # import scipy as sp
 # import matplotlib.pyplot as plt
 # import pandas as pd
@@ -81,24 +81,11 @@ def _R_gamma(x):
 
 
 def _test():
-    import numpy.testing as npt
-
-    _tests = []
-    def _t(f):
-        _tests.append(f)
-
-    @_t
-    def t():
-        alpha = 0.1
-        beta = 0.2
-        gamma = 0.3
-        npt.assert_almost_equal(_R_alpha_beta_gamma(alpha, beta, gamma),
-                                eq.util.dots(_R_alpha(alpha), _R_beta(beta), _R_gamma(gamma)))
-
-    for t in _tests:
-        t()
-        print('.', end='', file=sys.stderr)
-    print(file=sys.stderr)
+    alpha = 0.1
+    beta = 0.2
+    gamma = 0.3
+    npt.assert_almost_equal(_R_alpha_beta_gamma(alpha, beta, gamma),
+                            eq.util.dots(_R_alpha(alpha), _R_beta(beta), _R_gamma(gamma)))
 
 
 class _Tester(unittest.TestCase):
