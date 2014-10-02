@@ -1,12 +1,12 @@
 # import sys
 import operator
-import functools
 from random import random
 import unittest
 from math import sqrt, cos, sin, acos, atan2
 import numpy as np
 from numpy import dot
 
+import eq.util
 import eq.kshramt
 
 
@@ -161,15 +161,15 @@ class MomentTensor(object):
         else:
             _error(True, 'invalid argument: {}', sdr_m0)
 
-        R = _dots(self._rotate_xy(-strike),
-                  self._rotate_xz(-dip),
-                  self._rotate_xy(rake),
-                  self._R_yz_from_xx_zz)
-        self.mxyz = _dots(R,
-                          ((-m0, 0, 0),
-                           (0, 0, 0),
-                           (0, 0, m0)),
-                          np.transpose(R))
+        R = eq.util.dots(self._rotate_xy(-strike),
+                         self._rotate_xz(-dip),
+                         self._rotate_xy(rake),
+                         self._R_yz_from_xx_zz)
+        self.mxyz = eq.util.dots(R,
+                                 ((-m0, 0, 0),
+                                  (0, 0, 0),
+                                  (0, 0, m0)),
+                                 np.transpose(R))
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
         if dip > 90: # 0 <= dip <= 90
@@ -218,7 +218,7 @@ class MomentTensor(object):
         cos_dip = R33
         if abs(cos_dip) > 1: # todo: is this ok?
             _error(abs(cos_dip) > 1 + 1e-7, 'abs(cos_dip) > 1 + 1e-7: {}', cos_dip)
-            cos_dip = _sign(cos_dip)
+            cos_dip = eq.kshramt.sign(cos_dip)
         dip = np.arccos(cos_dip)
         sin_dip = sin(dip)
         if abs(sin_dip) <= 1e-7: # todo: better threshold
@@ -398,7 +398,7 @@ class MomentTensor(object):
         Prake = [[cos_rake, -sin_rake, 0.0],
                  [sin_rake, cos_rake, 0.0],
                  [0.0, 0.0, 1.0]]
-        Psdr = _dots(Pstrike, Pdip, Prake)
+        Psdr = eq.util.dots(Pstrike, Pdip, Prake)
         m1, m2, m3 = self.ms_rotateion[0]
         m_iso = (m1 + m2 + m3)/3
         return ([dot(Psdr, xyz) for xyz in points],
@@ -438,21 +438,8 @@ def vtk(points, triangles, amplitudes):
                       'CELL_DATA {}'.format(len(triangles)),
                       'SCALARS polarity int 1',
                       'LOOKUP_TABLE default',
-                      '\n'.join(str(_sign(a))
+                      '\n'.join(str(eq.kshramt.sign(a))
                                 for a in amplitudes)])
-
-
-def _dots(*ms):
-    return functools.reduce(dot, ms)
-
-
-def _sign(x):
-    if x > 0:
-        return 1
-    elif x < 0:
-        return -1
-    else:
-        return 0
 
 
 def _amplitudes_of_triangles(points, triangles, m2, m3):
@@ -503,42 +490,19 @@ def _get_phi(x, y):
 
 class Tester(unittest.TestCase):
 
-    def is_almost_equal_angle(self, x, y):
-        delta = 0.01
-        if abs(x) > 180 - delta:
-            xl = x - delta
-            xr = x + delta
-            if xl < -180:
-                return -180 <= y < xr or 360 + xl < y <= 180
-            else:
-                return xl < y <= 180 or -180 <= y < xr - 360
-        else:
-            return abs(x - y) <= delta
-
-    def assert_almost_equal_angle(self, x, y):
-        self.assertTrue(self.is_almost_equal_angle(x, y))
-
     def assert_almost_equal_plane(self, sdr1, sdr2):
         s1, d1, r1 = sdr1
         s2, d2, r2 = sdr2
-        s1, d1, r1 = self.m._correction_strike_dip_rake(s1, d1, r1)
-        if d1 == 0:
-            r1 = 0
-            s1 = s1 - r1
-        if self.is_almost_equal_angle(d2, 90):
-            try:
-                self.assert_almost_equal_angle(s1, s2)
-                self.assert_almost_equal_angle(d1, d2)
-                self.assert_almost_equal_angle(r1, r2)
-            except AssertionError:
-                s2 = (s2 - 180)%180
-                r2 = -r2
-                for x, y in ((s1, s2), (d1, d2), (r1, r2)):
-                    self.assert_almost_equal_angle(x, y)
-        else:
-            self.assert_almost_equal_angle(s1, s2)
-            self.assert_almost_equal_angle(d1, d2)
-            self.assert_almost_equal_angle(r1, r2)
+        m1 = MomentTensor()
+        m1.strike_dip_rake = sdr1
+        m2 = MomentTensor()
+        m2.strike_dip_rake = sdr2
+        self.assertAlmostEqual(m1.xx, m2.xx)
+        self.assertAlmostEqual(m1.yy, m2.yy)
+        self.assertAlmostEqual(m1.zz, m2.zz)
+        self.assertAlmostEqual(m1.xy, m2.xy)
+        self.assertAlmostEqual(m1.xz, m2.xz)
+        self.assertAlmostEqual(m1.yz, m2.yz)
 
     def assert_one_plane_is_ok(self, sdr, sdrs):
         #print('ORIG:\t{}\t{}\t{}'.format(*sdr), file=sys.stderr)
