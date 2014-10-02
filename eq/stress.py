@@ -1,6 +1,3 @@
-#!/usr/bin/python
-
-
 import unittest
 import sys
 from math import sin, cos, acos
@@ -53,6 +50,7 @@ def _R_alpha_beta_gamma(alpha, beta, gamma):
                      (Sa*Cb, Ca*Cg - Sa*Sb*Sg, -(Sa*Sb*Cg + Sg*Ca)),
                      (Sb, Sg*Cb, Cb*Cg)))
 
+
 def _R_alpha(x):
     c = cos(x)
     s = sin(x)
@@ -67,6 +65,7 @@ def _R_beta(x):
     return np.array(((c, 0e0, -s),
                      (0e0, 1e0, 0e0),
                      (s, 0e0, c)))
+
 
 def _R_gamma(x):
     c = cos(x)
