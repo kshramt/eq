@@ -1,3 +1,8 @@
+"""
+Assume tension is positive.
+"""
+
+
 import unittest
 import sys
 from math import sin, cos, acos
