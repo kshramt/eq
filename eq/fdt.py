@@ -43,11 +43,15 @@ def to_strike_dip_rake(f_az, f_pl, s_az, s_pl, faulting_type, comment=None):
 
 
 def load(fp):
-    return (parse_record(line.rstrip('\n')) for line in fp)
+    return map(parse_record, fp)
 
 
 def parse_record(line):
-    f_az, f_pl, s_az, s_pl, faulting_type, *comment = line.split(maxsplit=5)
+    """
+    input: degree
+    output: radian
+    """
+    f_az, f_pl, s_az, s_pl, faulting_type, *comment = line.rstrip('\n').split(maxsplit=5)
     faulting_type = faulting_type.lower()
     assert faulting_type in FAULTING_TYPES
     ret = dict(f_az=eq.kshramt.rad(float(f_az)),
