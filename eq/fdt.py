@@ -68,7 +68,7 @@ class Error(Exception):
     pass
 
 
-def error(msg=None):
+def error(msg=''):
     raise Error(msg)
 
 
