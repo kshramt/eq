@@ -5,14 +5,9 @@ Assume tension is positive.
 
 import unittest
 from math import sin, cos, acos
-# import re
-# import pickle
 
 import numpy as np
 import numpy.testing as npt
-# import scipy as sp
-# import matplotlib.pyplot as plt
-# import pandas as pd
 
 import eq.util
 import eq.kshramt
