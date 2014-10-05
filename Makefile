@@ -1,6 +1,6 @@
 # Constants
 DIR := $(abspath .)
-DEPS := kshramt.py
+DEPS := kshramt_py
 
 
 MY_PYTHON ?= python3.3
@@ -48,7 +48,7 @@ build: deps
 
 # Files
 
-eq/kshramt.py: dep/kshramt.py/kshramt.py
+eq/kshramt.py: dep/kshramt_py/kshramt.py
 	mkdir -p $(@D)
 	cp -a $< $@
 
