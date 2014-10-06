@@ -487,14 +487,14 @@ def _m_strike_dip_rake(strike, dip, rake):
                      (m13, m23, m33)))
 
 
-def _R_xy(t):
+def _rotate_xy(t):
     c = cos(t)
     s = sin(t)
     return np.array(((c, -s, 0e0),
                      (s, c, 0e0),
                      (0e0, 0e0, 1e0)))
 
-def _R_xz(t):
+def _rotate_xz(t):
     c = cos(t)
     s = sin(t)
     return np.array(((c, 0e0, -s),
@@ -508,9 +508,9 @@ def _test():
     strike = 0.1
     dip = 0.2
     rake = -0.3
-    R = eq.util.dots(_R_xy(-strike),
-                     _R_xz(-dip),
-                     _R_xy(rake))
+    R = eq.util.dots(_rotate_xy(-strike),
+                     _rotate_xz(-dip),
+                     _rotate_xy(rake))
     npt.assert_almost_equal(_m_strike_dip_rake(strike, dip, rake),
                             eq.util.dots(R,
                                          ((0e0, 0e0, 0e0),
