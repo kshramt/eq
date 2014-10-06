@@ -263,20 +263,10 @@ class MomentTensor(object):
     def ms_rotateion(self):
         return self._sorted_eig(self.mxyz)
 
-    @classmethod
-    def _sorted_eig(cls, m):
-        es, vs = np.linalg.eigh(m)
-        es, is_ = cls._sorted_i(es)
-        return es, vs[:, is_]
-
     @staticmethod
-    def _sorted_i(xs):
-        sorted_xs = []
-        sorted_indices = []
-        for i, x in sorted(enumerate(xs), key=operator.itemgetter(1)):
-            sorted_xs.append(x)
-            sorted_indices.append(i)
-        return sorted_xs, sorted_indices
+    def _sorted_eig(m):
+        es, vs = np.linalg.eigh(m)
+        return np.sort(es), vs[:, np.argsort(es)]
 
     # xyz
 
@@ -666,18 +656,15 @@ class Tester(unittest.TestCase):
         es, vs = self.m._sorted_eig(((2, 0, 0),
                                      (0, 0, 0),
                                      (0, 0, 1)))
-        self.assertAlmostEqual(es, [0, 1, 2])
+        self.assertAlmostEqual(es[0], 0)
+        self.assertAlmostEqual(es[1], 1)
+        self.assertAlmostEqual(es[2], 2)
         ans = ((0, 0, 1),
                (1, 0, 0),
                (0, 1, 0))
         for i in range(3):
             for j in range(3):
                 self.assertAlmostEqual(vs[i][j], ans[i][j])
-
-    def test__sorted_i(self):
-        xs, is_ = self.m._sorted_i([10, 30, 20])
-        self.assertEqual(xs, [10, 20, 30])
-        self.assertEqual(is_, [0, 2, 1])
 
     def test_mrtf(self):
         orig = self.m.mrtf
