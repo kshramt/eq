@@ -38,18 +38,18 @@ class MomentTensor(object):
         'f': ('x', +1),
     }
 
-    _R_yz_from_xx_zz = dot(((0, -1, 0),
-                            (1, 0, 0),
-                            (0, 0, 1)),
-                           ((_INV_SQRT2, 0, _INV_SQRT2),
-                            (0, 1, 0),
-                            (-_INV_SQRT2, 0, _INV_SQRT2)))
-    _R_conjugate_for_yz = dot(((1, 0, 0),
-                               (0, 0, 1),
-                               (0, -1, 0)),
-                              ((-1, 0, 0),
-                               (0, -1, 0),
-                               (0, 0, 1)))
+    _tR_yz_from_xx_zz = dot(((0, -1, 0),
+                             (1, 0, 0),
+                             (0, 0, 1)),
+                            ((_INV_SQRT2, 0, _INV_SQRT2),
+                             (0, 1, 0),
+                             (-_INV_SQRT2, 0, _INV_SQRT2))).T
+    _tR_conjugate_for_yz = dot(((1, 0, 0),
+                                (0, 0, 1),
+                                (0, -1, 0)),
+                               ((-1, 0, 0),
+                                (0, -1, 0),
+                                (0, 0, 1))).T
     def __init__(self):
         self.xx = 0
         self.yy = 0
@@ -254,8 +254,8 @@ class MomentTensor(object):
         where (strike2, dip2, rake2) could be unstable.
         """
         _, R = self._sorted_eig(m)
-        R_yz = dot(R, np.transpose(self._R_yz_from_xx_zz))
-        R_yz_conjugate = dot(R_yz, np.transpose(self._R_conjugate_for_yz))
+        R_yz = dot(R, self._tR_yz_from_xx_zz)
+        R_yz_conjugate = dot(R_yz, self._tR_conjugate_for_yz)
         sdr1 = self._strike_dip_rake_from_R_yz(R_yz)
         sdr2 = self._strike_dip_rake_from_R_yz(R_yz_conjugate)
         if abs(R_yz[2][2]) <= _INV_SQRT2:
