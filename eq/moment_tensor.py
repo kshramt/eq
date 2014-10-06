@@ -171,16 +171,12 @@ class MomentTensor(object):
         Sr = sin(rake)
         SrSs = Sr*Ss
         CdCr = Cd*Cr
-        ss = strike + strike
-        dd = dip + dip
-        self.xx = 2*(-Sr*Cd*Cs + Ss*Cr)*Sd*Cs
-        self.xy = (2*cos(rake - ss) + 2*cos(rake + ss) - cos(-dip + rake + ss) + cos(dip - rake + ss) + cos(dip + rake - ss) - cos(dip + rake + ss))*Sd/4
-        self.xz = -2*Sr*Cd**2*Cs + Sr*Cs + Ss*CdCr
-        self.yy = -2*(SrSs*Cd + Cr*Cs)*Sd*Ss
-        self.yz = -2*Sd**2*SrSs + SrSs + CdCr*Cs
-        self.zz = cos(dd - rake)/2 - cos(dd + rake)/2
-        self *= m0
-
+        self.xx = m0*(2*(-Sr*Cd*Cs + Ss*Cr)*Sd*Cs)
+        self.xy = m0*((Cr*cos(strike + strike) + 2*Cd*SrSs*Cs)*Sd)
+        self.xz = m0*(-2*Sr*Cd**2*Cs + Sr*Cs + Ss*CdCr)
+        self.yy = m0*(-2*(SrSs*Cd + Cr*Cs)*Sd*Ss)
+        self.yz = m0*(-2*Sd**2*SrSs + SrSs + CdCr*Cs)
+        self.zz = m0*(2*Sd*Cd*Sr)
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
         if dip > HALF_PI: # 0 <= dip <= 90
