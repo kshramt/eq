@@ -21,6 +21,8 @@ def _error(cond=True, msg='', *args):
 
 _SQRT2 = sqrt(2)
 _INV_SQRT2 = _SQRT2/2
+PI = np.pi
+HALF_PI = PI/2
 
 
 class MomentTensor(object):
@@ -163,31 +165,30 @@ class MomentTensor(object):
 
         R = eq.util.dots(self._rotate_xy(-strike),
                          self._rotate_xz(-dip),
-                         self._rotate_xy(rake),
-                         self._R_yz_from_xx_zz)
+                         self._rotate_xy(rake))
         self.mxyz = eq.util.dots(R,
-                                 ((-m0, 0, 0),
-                                  (0, 0, 0),
-                                  (0, 0, m0)),
+                                 ((0, 0, 0),
+                                  (0, 0, m0),
+                                  (0, m0, 0)),
                                  np.transpose(R))
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
-        if dip > 90: # 0 <= dip <= 90
-            dip = 180 - dip
+        if dip > HALF_PI: # 0 <= dip <= 90
+            dip = PI - dip
             if strike >= 0:
-                strike -= 180
+                strike -= PI
             else:
-                strike += 180
+                strike += PI
             rake *= -1
-        elif dip == 90: # 0 <= strike < 180 if dip == 90
+        elif dip == HALF_PI: # 0 <= strike < 180 if dip == 90
             if strike < 0:
-                strike += 180
+                strike += PI
                 rake *= -1
-            if strike == 180:
+            if strike == PI:
                 strike = 0
                 rake *= -1
-        if rake == -180: # -180 < rake <= 180
-            rake = 180
+        if rake == -PI: # -180 < rake <= 180
+            rake = PI
 
         return strike, dip, rake
 
@@ -233,7 +234,7 @@ class MomentTensor(object):
             else:
                 rake = np.arctan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
 
-        return self._correction_strike_dip_rake(np.rad2deg(strike), np.rad2deg(dip), np.rad2deg(rake))
+        return self._correction_strike_dip_rake(strike, dip, rake)
 
     def _strike_dip_rakes(self, m):
         """
@@ -354,18 +355,16 @@ class MomentTensor(object):
 
     @staticmethod
     def _rotate_xy(theta):
-        t = np.deg2rad(theta)
-        cos_t = cos(t)
-        sin_t = sin(t)
+        cos_t = cos(theta)
+        sin_t = sin(theta)
         return ((cos_t, -sin_t, 0),
                 (sin_t, cos_t, 0),
                 (0, 0, 1))
 
     @staticmethod
     def _rotate_xz(theta):
-        t = np.deg2rad(theta)
-        cos_t = cos(t)
-        sin_t = sin(t)
+        cos_t = cos(theta)
+        sin_t = sin(theta)
         return ((cos_t, 0, -sin_t),
                 (0, 1, 0),
                 (sin_t, 0, cos_t))
@@ -381,7 +380,7 @@ class MomentTensor(object):
 
     def amplitude_distribution(self, order=5):
         triangles, points = eq.kshramt.sphere_mesh(n=order, r=1, base=20)
-        strike, dip, rake = np.deg2rad(self.strike_dip_rake)
+        strike, dip, rake = self.strike_dip_rake
         strike = np.pi/2 - strike
         cos_strike = cos(strike)
         sin_strike = sin(strike)
@@ -571,24 +570,24 @@ class Tester(unittest.TestCase):
                       zx, zy, zz) in ((0, 0, 0, (0, 0, 0,
                                                  0, 0, 1,
                                                  0, 1, 0)),
-                                      (90, 0, 0, (0, 0, 1,
-                                                  0, 0, 0,
-                                                  1, 0, 0)),
-                                      (0, 90, 0, (0, 1, 0,
-                                                  1, 0, 0,
-                                                  0, 0, 0)),
-                                      (45, 90, 0, (1, 0, 0,
-                                                   0, -1, 0,
-                                                   0, 0, 0)),
-                                      (0, 45, -90, (1, 0, 0,
-                                                    0, 0, 0,
-                                                    0, 0, -1)),
-                                      (-180, 45, -90, (1, 0, 0,
+                                      (HALF_PI, 0, 0, (0, 0, 1,
                                                        0, 0, 0,
-                                                       0, 0, -1)),
-                                      (180, 45, -90, (1, 0, 0,
-                                                      0, 0, 0,
-                                                      0, 0, -1))):
+                                                       1, 0, 0)),
+                                      (0, HALF_PI, 0, (0, 1, 0,
+                                                       1, 0, 0,
+                                                       0, 0, 0)),
+                                      (HALF_PI/2, HALF_PI, 0, (1, 0, 0,
+                                                               0, -1, 0,
+                                                               0, 0, 0)),
+                                      (0, HALF_PI/2, -HALF_PI, (1, 0, 0,
+                                                              0, 0, 0,
+                                                              0, 0, -1)),
+                                      (-PI, HALF_PI/2, -HALF_PI, (1, 0, 0,
+                                                                  0, 0, 0,
+                                                                  0, 0, -1)),
+                                      (PI, HALF_PI/2, -HALF_PI, (1, 0, 0,
+                                                                 0, 0, 0,
+                                                                 0, 0, -1))):
             self.m.strike_dip_rake = (s, d, r)
             self.assertAlmostEqual(self.m.xx, xx)
             self.assertAlmostEqual(self.m.xy, xy)
@@ -601,20 +600,20 @@ class Tester(unittest.TestCase):
             self.assertAlmostEqual(self.m.zz, zz)
 
     def test_strike_dip_rake(self):
-        for m1to6, (s0, d0, r0) in (((1, 0, 0, 0, 0, 0), (0, 90, 0)),
-                                    ((0, 2, 0, 0, 0, 0), (45, 90, 180)),
-                                    ((0, 0, 3, 0, 0, 0), (0, 90, -90)),
-                                    ((0, 0, 0, 4, 0, 0), (90, 90, 90)),
-                                    ((0, 0, 0, 0, 5, 0), (90, 45, 90)),
-                                    ((0, 0, 0, 0, 0, 6), (-180, 45, 90))):
+        for m1to6, (s0, d0, r0) in (((1, 0, 0, 0, 0, 0), (0, HALF_PI, 0)),
+                                    ((0, 2, 0, 0, 0, 0), (HALF_PI/2, HALF_PI, PI)),
+                                    ((0, 0, 3, 0, 0, 0), (0, HALF_PI, -HALF_PI)),
+                                    ((0, 0, 0, 4, 0, 0), (HALF_PI, HALF_PI, HALF_PI)),
+                                    ((0, 0, 0, 0, 5, 0), (HALF_PI, HALF_PI/2, HALF_PI)),
+                                    ((0, 0, 0, 0, 0, 6), (-PI, HALF_PI/2, HALF_PI))):
             self.m.m1to6 = m1to6
             s, d, r = self.m.strike_dip_rake
             self.assert_almost_equal_plane((s, d, r), (s0, d0, r0))
 
-        for s, d, r in ((45, 90, 0),
-                        (45, 90, 1),
-                        (45, 90, 180),
-                        (0, 90, 180)):
+        for s, d, r in ((HALF_PI/2, HALF_PI, 0),
+                        (HALF_PI/2, HALF_PI, 1),
+                        (HALF_PI/2, HALF_PI, PI),
+                        (0, HALF_PI, PI)):
             self.m.strike_dip_rake = (s, d, r)
             s_, d_, r_ = self.m.strike_dip_rake
             self.assert_almost_equal_plane((s_, d_, r_), (s, d, r))
@@ -623,10 +622,10 @@ class Tester(unittest.TestCase):
             s = 360*(0.5 - random())
             self.m.strike_dip_rake = (s, 0, 0)
             self.assert_one_plane_is_ok((s, 0, 0), self.m.strike_dip_rakes)
-            self.m.strike_dip_rake = (s, 90, 0)
-            self.assert_one_plane_is_ok((s, 90, 0), self.m.strike_dip_rakes)
+            self.m.strike_dip_rake = (s, HALF_PI, 0)
+            self.assert_one_plane_is_ok((s, HALF_PI, 0), self.m.strike_dip_rakes)
 
-        for sdr in ((180, 90, 1),):
+        for sdr in ((PI, HALF_PI, 1),):
             self.m.strike_dip_rake = sdr
             sdr1, sdr2 = self.m.strike_dip_rakes
             s_, d_, r_ = self.m._correction_strike_dip_rake(*sdr)
@@ -637,7 +636,7 @@ class Tester(unittest.TestCase):
 
         for _ in range(500):
             s = 360*(random() - 0.5)
-            d = min(90.001*random(), 90)
+            d = min(HALF_PI*1.001*random(), HALF_PI)
             r = 360*(random() - 0.5)
             s_, d_, r_ = self.m._correction_strike_dip_rake(s, d, r)
             if d_ == 0:
