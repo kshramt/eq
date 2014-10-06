@@ -1,5 +1,4 @@
 # import sys
-import operator
 from random import random
 import unittest
 from math import sqrt, cos, sin, acos, atan2, log10
