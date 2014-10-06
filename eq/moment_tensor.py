@@ -239,9 +239,7 @@ class MomentTensor(object):
         """
         _, R = self._sorted_eig(m)
         R_yz = dot(R, np.transpose(self._R_yz_from_xx_zz))
-        R_yz_conjugate = dot(R,
-                             np.transpose(dot(self._R_conjugate_for_yz,
-                                              self._R_yz_from_xx_zz)))
+        R_yz_conjugate = dot(R_yz, np.transpose(self._R_conjugate_for_yz))
         sdr1 = self._strike_dip_rake_from_R_yz(R_yz)
         sdr2 = self._strike_dip_rake_from_R_yz(R_yz_conjugate)
         if abs(R_yz[2][2]) <= _INV_SQRT2:
