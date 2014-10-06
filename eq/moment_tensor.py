@@ -163,7 +163,23 @@ class MomentTensor(object):
         else:
             _error(True, 'invalid argument: {}', sdr_m0)
 
-        self.mxyz = m0*_m_strike_dip_rake(strike, dip, rake)
+        Cs = cos(strike)
+        Ss = sin(strike)
+        Cd = cos(dip)
+        Sd = sin(dip)
+        Cr = cos(rake)
+        Sr = sin(rake)
+        SrSs = Sr*Ss
+        CdCr = Cd*Cr
+        ss = strike + strike
+        dd = dip + dip
+        self.xx = 2*(-Sr*Cd*Cs + Ss*Cr)*Sd*Cs
+        self.xy = (2*cos(rake - ss) + 2*cos(rake + ss) - cos(-dip + rake + ss) + cos(dip - rake + ss) + cos(dip + rake - ss) - cos(dip + rake + ss))*Sd/4
+        self.xz = -2*Sr*Cd**2*Cs + Sr*Cs + Ss*CdCr
+        self.yy = -2*(SrSs*Cd + Cr*Cs)*Sd*Ss
+        self.yz = -2*Sd**2*SrSs + SrSs + CdCr*Cs
+        self.zz = cos(dd - rake)/2 - cos(dd + rake)/2
+        self *= m0
 
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
@@ -463,28 +479,6 @@ def _get_phi(x, y):
     return atan2(y, x)
 
 
-def _m_strike_dip_rake(strike, dip, rake):
-    Cs = cos(strike)
-    Ss = sin(strike)
-    Cd = cos(dip)
-    Sd = sin(dip)
-    Cr = cos(rake)
-    Sr = sin(rake)
-    SrSs = Sr*Ss
-    CdCr = Cd*Cr
-    ss = strike + strike
-    dd = dip + dip
-    m11 = 2*(-Sr*Cd*Cs + Ss*Cr)*Sd*Cs
-    m12 = (2*cos(rake - ss) + 2*cos(rake + ss) - cos(-dip + rake + ss) + cos(dip - rake + ss) + cos(dip + rake - ss) - cos(dip + rake + ss))*Sd/4
-    m13 = -2*Sr*Cd**2*Cs + Sr*Cs + Ss*CdCr
-    m22 = -2*(SrSs*Cd + Cr*Cs)*Sd*Ss
-    m23 = -2*Sd**2*SrSs + SrSs + CdCr*Cs
-    m33 = cos(dd - rake)/2 - cos(dd + rake)/2
-    return np.array(((m11, m12, m13),
-                     (m12, m22, m23),
-                     (m13, m23, m33)))
-
-
 def _rotate_xy(t):
     c = cos(t)
     s = sin(t)
@@ -509,7 +503,9 @@ def _test():
     R = eq.util.dots(_rotate_xy(-strike),
                      _rotate_xz(-dip),
                      _rotate_xy(rake))
-    npt.assert_almost_equal(_m_strike_dip_rake(strike, dip, rake),
+    m = MomentTensor()
+    m.strike_dip_rake = (strike, dip, rake)
+    npt.assert_almost_equal(m.mxyz,
                             eq.util.dots(R,
                                          ((0e0, 0e0, 0e0),
                                           (0e0, 0e0, 1e0),
