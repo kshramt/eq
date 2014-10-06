@@ -2,7 +2,7 @@
 import operator
 from random import random
 import unittest
-from math import sqrt, cos, sin, acos, atan2
+from math import sqrt, cos, sin, acos, atan2, log10
 import numpy as np
 from numpy import dot
 
@@ -131,9 +131,9 @@ class MomentTensor(object):
         moment (Nm)
         """
         if unit == 'Nm':
-            return (np.log10(self.moment) + 7)/1.5 - 10.7
+            return (log10(self.moment) + 7)/1.5 - 10.7
         elif unit == 'dynecm':
-            return np.log10(self.moment)/1.5 - 10.7
+            return log10(self.moment)/1.5 - 10.7
         else:
             return NotImplemented
 
@@ -214,19 +214,19 @@ class MomentTensor(object):
         if abs(cos_dip) > 1: # todo: is this ok?
             _error(abs(cos_dip) > 1 + 1e-7, 'abs(cos_dip) > 1 + 1e-7: {}', cos_dip)
             cos_dip = eq.kshramt.sign(cos_dip)
-        dip = np.arccos(cos_dip)
+        dip = acos(cos_dip)
         sin_dip = sin(dip)
         if abs(sin_dip) <= 1e-7: # todo: better threshold
             rake = 0
-            strike = np.arctan2(R12, R22)
+            strike = atan2(R12, R22)
         else:
-            strike = np.arctan2(-R23, R13)
+            strike = atan2(-R23, R13)
             sin_strike = -R23/sin_dip
             sin_rake = R32/sin_dip
             if _INV_SQRT2 <= abs(sin_strike):
-                rake = np.arctan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
+                rake = atan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
             else:
-                rake = np.arctan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
+                rake = atan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
 
         return self._correction_strike_dip_rake(strike, dip, rake)
 
@@ -357,7 +357,7 @@ class MomentTensor(object):
     def amplitude_distribution(self, order=5):
         triangles, points = eq.kshramt.sphere_mesh(n=order, r=1, base=20)
         strike, dip, rake = self.strike_dip_rake
-        strike = np.pi/2 - strike
+        strike = PI - strike
         cos_strike = cos(strike)
         sin_strike = sin(strike)
         Pstrike = [[cos_strike, -sin_strike, 0.0],
