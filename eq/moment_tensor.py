@@ -163,14 +163,8 @@ class MomentTensor(object):
         else:
             _error(True, 'invalid argument: {}', sdr_m0)
 
-        R = eq.util.dots(self._rotate_xy(-strike),
-                         self._rotate_xz(-dip),
-                         self._rotate_xy(rake))
-        self.mxyz = eq.util.dots(R,
-                                 ((0, 0, 0),
-                                  (0, 0, m0),
-                                  (0, m0, 0)),
-                                 np.transpose(R))
+        self.mxyz = m0*_m_strike_dip_rake(strike, dip, rake)
+
 
     def _correction_strike_dip_rake(self, strike, dip, rake):
         if dip > HALF_PI: # 0 <= dip <= 90
@@ -354,22 +348,6 @@ class MomentTensor(object):
         self.yz = -m1to6[3]
 
     @staticmethod
-    def _rotate_xy(theta):
-        cos_t = cos(theta)
-        sin_t = sin(theta)
-        return ((cos_t, -sin_t, 0),
-                (sin_t, cos_t, 0),
-                (0, 0, 1))
-
-    @staticmethod
-    def _rotate_xz(theta):
-        cos_t = cos(theta)
-        sin_t = sin(theta)
-        return ((cos_t, 0, -sin_t),
-                (0, 1, 0),
-                (sin_t, 0, cos_t))
-
-    @staticmethod
     def make_rtf_property(rtf1, rtf2):
         xyz1, sign1 = MomentTensor.XYZ_SIGN_FROM_RTF[rtf1]
         xyz2, sign2 = MomentTensor.XYZ_SIGN_FROM_RTF[rtf2]
@@ -485,6 +463,60 @@ def _get_theta(z):
 
 def _get_phi(x, y):
     return atan2(y, x)
+
+
+def _m_strike_dip_rake(strike, dip, rake):
+    Cs = cos(strike)
+    Ss = sin(strike)
+    Cd = cos(dip)
+    Sd = sin(dip)
+    Cr = cos(rake)
+    Sr = sin(rake)
+    SrSs = Sr*Ss
+    CdCr = Cd*Cr
+    ss = strike + strike
+    dd = dip + dip
+    m11 = 2*(-Sr*Cd*Cs + Ss*Cr)*Sd*Cs
+    m12 = (2*cos(rake - ss) + 2*cos(rake + ss) - cos(-dip + rake + ss) + cos(dip - rake + ss) + cos(dip + rake - ss) - cos(dip + rake + ss))*Sd/4
+    m13 = -2*Sr*Cd**2*Cs + Sr*Cs + Ss*CdCr
+    m22 = -2*(SrSs*Cd + Cr*Cs)*Sd*Ss
+    m23 = -2*Sd**2*SrSs + SrSs + CdCr*Cs
+    m33 = cos(dd - rake)/2 - cos(dd + rake)/2
+    return np.array(((m11, m12, m13),
+                     (m12, m22, m23),
+                     (m13, m23, m33)))
+
+
+def _R_xy(t):
+    c = cos(t)
+    s = sin(t)
+    return np.array(((c, -s, 0e0),
+                     (s, c, 0e0),
+                     (0e0, 0e0, 1e0)))
+
+def _R_xz(t):
+    c = cos(t)
+    s = sin(t)
+    return np.array(((c, 0e0, -s),
+                     (0e0, 1e0, 0e0),
+                     (s, 0e0, c)))
+
+
+def _test():
+    import numpy.testing as npt
+
+    strike = 0.1
+    dip = 0.2
+    rake = -0.3
+    R = eq.util.dots(_R_xy(-strike),
+                     _R_xz(-dip),
+                     _R_xy(rake))
+    npt.assert_almost_equal(_m_strike_dip_rake(strike, dip, rake),
+                            eq.util.dots(R,
+                                         ((0e0, 0e0, 0e0),
+                                          (0e0, 0e0, 1e0),
+                                          (0e0, 1e0, 0e0)),
+                                         R.T))
 
 
 class Tester(unittest.TestCase):
@@ -738,4 +770,5 @@ class Tester(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    _test()
     unittest.main()
