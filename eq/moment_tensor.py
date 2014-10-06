@@ -271,12 +271,7 @@ class MomentTensor(object):
     def _sorted_eig(cls, m):
         es, vs = np.linalg.eigh(m)
         es, is_ = cls._sorted_i(es)
-        return es, np.transpose(cls._update_by_indices(np.transpose(vs), is_))
-
-    @staticmethod
-    def _update_by_indices(xs, is_):
-        _error(len(xs) != len(is_), 'xs, is_: {}, {}', xs, is_)
-        return [xs[i] for i in is_]
+        return es, vs[:, is_]
 
     @staticmethod
     def _sorted_i(xs):
@@ -682,10 +677,6 @@ class Tester(unittest.TestCase):
         for i in range(3):
             for j in range(3):
                 self.assertAlmostEqual(vs[i][j], ans[i][j])
-
-    def test__update_by_indices(self):
-        xs = self.m._update_by_indices([0, 1, 2], [0, 2, 1])
-        self.assertEqual(xs, [0, 2, 1])
 
     def test__sorted_i(self):
         xs, is_ = self.m._sorted_i([10, 30, 20])
