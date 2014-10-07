@@ -319,7 +319,7 @@ for rtf1 in _rtf:
         setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
 
 
-def conjugate_fault(strike, dip, rake):
+def conjugate_strike_dip_rake(strike, dip, rake):
     return _strike_dip_rake_from_R_yz(dot(_R_yz_from_strike_dip_rake(strike, dip, rake), _R_conjugate_for_R_yz))
 
 
@@ -518,7 +518,7 @@ def _test():
     m1 = MomentTensor()
     m1.strike_dip_rake = strike1, dip1, rake1
     m2 = MomentTensor()
-    strike2, dip2, rake2 = conjugate_fault(strike, dip, rake)
+    strike2, dip2, rake2 = conjugate_strike_dip_rake(strike, dip, rake)
     m2.strike_dip_rake = strike2, dip2, rake2
     npt.assert_almost_equal(m1.mxyz, m2.mxyz)
 
