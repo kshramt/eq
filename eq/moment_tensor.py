@@ -22,6 +22,12 @@ _SQRT2 = sqrt(2)
 _INV_SQRT2 = _SQRT2/2
 PI = np.pi
 HALF_PI = PI/2
+_R_conjugate_for_R_yz = dot(((1e0, 0e0, 0e0),
+                             (0e0, 0e0, 1e0),
+                             (0e0, -1e0, 0e0)),
+                            ((-1e0, 0e0, 0e0),
+                             (0e0, -1e0, 0e0),
+                             (0e0, 0e0, 1e0)))
 
 
 class MomentTensor(object):
@@ -43,12 +49,7 @@ class MomentTensor(object):
                             ((_INV_SQRT2, 0, _INV_SQRT2),
                              (0, 1, 0),
                              (-_INV_SQRT2, 0, _INV_SQRT2))).T
-    _tR_conjugate_for_yz = dot(((1, 0, 0),
-                                (0, 0, 1),
-                                (0, -1, 0)),
-                               ((-1, 0, 0),
-                                (0, -1, 0),
-                                (0, 0, 1))).T
+
     def __init__(self):
         self.xx = 0
         self.yy = 0
@@ -177,70 +178,6 @@ class MomentTensor(object):
         self.yz = m0*(-2*Sd**2*SrSs + SrSs + CdCr*Cs)
         self.zz = m0*(2*Sd*Cd*Sr)
 
-    def _correction_strike_dip_rake(self, strike, dip, rake):
-        if dip > HALF_PI: # 0 <= dip <= 90
-            dip = PI - dip
-            if strike >= 0:
-                strike -= PI
-            else:
-                strike += PI
-            rake *= -1
-        elif dip == HALF_PI: # 0 <= strike < 180 if dip == 90
-            if strike < 0:
-                strike += PI
-                rake *= -1
-            if strike == PI:
-                strike = 0
-                rake *= -1
-        if rake == -PI: # -180 < rake <= 180
-            rake = PI
-
-        return strike, dip, rake
-
-    def _strike_dip_rake_from_R_yz(self, R_yz):
-        """
-        R_yz is a rotation matrix where
-
-        R_yz*M*transpose(R_yz) = [[0, 0, 0],
-                                  [0, 0, 1],
-                                  [0, 1, 0]]
-
-        Retured values are (strike, dip, rake), where
-
-        0 <= dip <= 90
-        -180 <= strike <= 180
-        0 <= strike < 180 if dip == 90
-        -180 < rake <= 180
-        rake == 0 if dip == 0 (only rake - strike can be resolved)
-        """
-        R12 = R_yz[0][1]
-        R13 = R_yz[0][2]
-        R22 = R_yz[1][1]
-        R23 = R_yz[1][2]
-        R32 = R_yz[2][1]
-        R33 = R_yz[2][2] # result is unstable if abs(R33) is small.
-
-        # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
-        cos_dip = R33
-        if abs(cos_dip) > 1: # todo: is this ok?
-            _error(abs(cos_dip) > 1 + 1e-7, 'abs(cos_dip) > 1 + 1e-7: {}', cos_dip)
-            cos_dip = eq.kshramt.sign(cos_dip)
-        dip = acos(cos_dip)
-        sin_dip = sin(dip)
-        if abs(sin_dip) <= 1e-7: # todo: better threshold
-            rake = 0
-            strike = atan2(R12, R22)
-        else:
-            strike = atan2(-R23, R13)
-            sin_strike = -R23/sin_dip
-            sin_rake = R32/sin_dip
-            if _INV_SQRT2 <= abs(sin_strike):
-                rake = atan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
-            else:
-                rake = atan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
-
-        return self._correction_strike_dip_rake(strike, dip, rake)
-
     def _strike_dip_rakes(self, m):
         """
         Returns
@@ -250,9 +187,9 @@ class MomentTensor(object):
         """
         _, R = self._sorted_eig(m)
         R_yz = dot(R, self._tR_yz_from_xx_zz)
-        R_yz_conjugate = dot(R_yz, self._tR_conjugate_for_yz)
-        sdr1 = self._strike_dip_rake_from_R_yz(R_yz)
-        sdr2 = self._strike_dip_rake_from_R_yz(R_yz_conjugate)
+        R_yz_conjugate = dot(R_yz, _R_conjugate_for_R_yz)
+        sdr1 = _strike_dip_rake_from_R_yz(R_yz)
+        sdr2 = _strike_dip_rake_from_R_yz(R_yz_conjugate)
         if abs(R_yz[2][2]) <= _INV_SQRT2:
             return sdr1, sdr2
         else:
@@ -382,6 +319,10 @@ for rtf1 in _rtf:
         setattr(MomentTensor, rtf1 + rtf2, MomentTensor.make_rtf_property(rtf1, rtf2))
 
 
+def conjugate_fault(strike, dip, rake):
+    return _strike_dip_rake_from_R_yz(dot(_R_yz_from_strike_dip_rake(strike, dip, rake), _R_conjugate_for_R_yz))
+
+
 def merge_amplitude_distributions(points_triangles_amplitudess):
     points = []
     triangles = []
@@ -459,6 +400,86 @@ def _get_phi(x, y):
     return atan2(y, x)
 
 
+def _R_yz_from_strike_dip_rake(strike, dip, rake):
+    Cs = cos(strike)
+    Ss = sin(strike)
+    Cd = cos(dip)
+    Sd = sin(dip)
+    Cr = cos(rake)
+    Sr = sin(rake)
+    SrSs = Sr*Ss
+    CdCr = Cd*Cr
+    SrCs = Sr*Cs
+    return ((SrSs + CdCr*Cs, -SrCs*Cd + Ss*Cr, Sd*Cs),
+            (SrCs - Ss*CdCr, SrSs*Cd + Cr*Cs, -Sd*Ss),
+            (-Sd*Cr, Sd*Sr, Cd))
+
+
+def _strike_dip_rake_from_R_yz(R_yz):
+    """
+    R_yz is a rotation matrix where
+
+    R_yz*M*transpose(R_yz) = [[0, 0, 0],
+                              [0, 0, 1],
+                              [0, 1, 0]]
+
+    Retured values are (strike, dip, rake), where
+
+    0 <= dip <= 90
+    -180 <= strike <= 180
+    0 <= strike < 180 if dip == 90
+    -180 < rake <= 180
+    rake == 0 if dip == 0 (only rake - strike can be resolved)
+    """
+    R12 = R_yz[0][1]
+    R13 = R_yz[0][2]
+    R22 = R_yz[1][1]
+    R23 = R_yz[1][2]
+    R32 = R_yz[2][1]
+    R33 = R_yz[2][2] # result is unstable if abs(R33) is small.
+
+    # You can not use elements of 1st column since they have no effect for a resultant momen tensor.
+    cos_dip = R33
+    if abs(cos_dip) > 1: # todo: is this ok?
+        _error(abs(cos_dip) > 1 + 1e-7, 'abs(cos_dip) > 1 + 1e-7: {}', cos_dip)
+        cos_dip = eq.kshramt.sign(cos_dip)
+    dip = acos(cos_dip)
+    sin_dip = sin(dip)
+    if abs(sin_dip) <= 1e-7: # todo: better threshold
+        rake = 0
+        strike = atan2(R12, R22)
+    else:
+        strike = atan2(-R23, R13)
+        sin_strike = -R23/sin_dip
+        sin_rake = R32/sin_dip
+        if _INV_SQRT2 <= abs(sin_strike):
+            rake = atan2(sin_rake, (R12 + sin_rake*cos_dip*cos(strike))/sin_strike)
+        else:
+            rake = atan2(sin_rake, (R22 - sin_rake*sin_strike*cos_dip)/cos(strike))
+
+    return _correction_strike_dip_rake(strike, dip, rake)
+
+
+def _correction_strike_dip_rake(strike, dip, rake):
+    if dip > HALF_PI: # 0 <= dip <= 90
+        dip = PI - dip
+        if strike >= 0:
+            strike -= PI
+        else:
+            strike += PI
+        rake *= -1
+    elif dip == HALF_PI: # 0 <= strike < 180 if dip == 90
+        if strike < 0:
+            strike += PI
+            rake *= -1
+        if strike == PI:
+            strike = 0
+            rake *= -1
+    if rake == -PI: # -180 < rake <= 180
+        rake = PI
+    return strike, dip, rake
+
+
 def _rotate_xy(t):
     c = cos(t)
     s = sin(t)
@@ -491,6 +512,15 @@ def _test():
                                           (0e0, 0e0, 1e0),
                                           (0e0, 1e0, 0e0)),
                                          R.T))
+    strike1 = 0.1
+    dip1 = 0.2
+    rake1 = -0.3
+    m1 = MomentTensor()
+    m1.strike_dip_rake = strike1, dip1, rake1
+    m2 = MomentTensor()
+    strike2, dip2, rake2 = conjugate_fault(strike, dip, rake)
+    m2.strike_dip_rake = strike2, dip2, rake2
+    npt.assert_almost_equal(m1.mxyz, m2.mxyz)
 
 
 class Tester(unittest.TestCase):
@@ -634,7 +664,7 @@ class Tester(unittest.TestCase):
         for sdr in ((PI, HALF_PI, 1),):
             self.m.strike_dip_rake = sdr
             sdr1, sdr2 = self.m.strike_dip_rakes
-            s_, d_, r_ = self.m._correction_strike_dip_rake(*sdr)
+            s_, d_, r_ = _correction_strike_dip_rake(*sdr)
             if d_ == 0:
                 r_ = 0
                 s_ = s_ - r_
@@ -644,7 +674,7 @@ class Tester(unittest.TestCase):
             s = 360*(random() - 0.5)
             d = min(HALF_PI*1.001*random(), HALF_PI)
             r = 360*(random() - 0.5)
-            s_, d_, r_ = self.m._correction_strike_dip_rake(s, d, r)
+            s_, d_, r_ = _correction_strike_dip_rake(s, d, r)
             if d_ == 0:
                 r_ = 0
                 s_ = s_ - r_
