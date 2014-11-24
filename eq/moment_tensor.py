@@ -290,7 +290,7 @@ class MomentTensor(object):
     def amplitude_distribution(self, order=5):
         triangles, points = eq.kshramt.sphere_mesh(n=order, r=1, base=20)
         strike, dip, rake = self.strike_dip_rake
-        strike = PI - strike
+        strike = HALF_PI - strike
         cos_strike = cos(strike)
         sin_strike = sin(strike)
         Pstrike = [[cos_strike, -sin_strike, 0.0],
