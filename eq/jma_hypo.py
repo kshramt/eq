@@ -1,7 +1,14 @@
 import unittest
-import math
+import sys
 
 import eq.kshramt
+
+
+def none(f):
+    def none_f(s):
+        if str.strip(s):
+            return f(s)
+    return none_f
 
 
 def _parse_record_type(s):
@@ -10,30 +17,44 @@ def _parse_record_type(s):
 
 
 def _parse_latitude(s):
-    d = int(s[:3])
+    sign = 1
+    if s.startswith('-'):
+        sign = -1
+    d = int(s[1:3])
     m = int(s[3:])/100
-    return d + math.copysign(m/60, d)
+    ret = sign*(d + m/60)
+    assert -90 <= ret <= 90
+    return ret
 
 
 def _parse_longitude(s):
-    d = int(s[:4])
+    sign = 1
+    if s.startswith('-'):
+        sign = -1
+    d = int(s[1:4])
     m = int(s[4:])/100
-    return d + math.copysign(m/60, d)
+    ret = sign*(d + m/60)
+    assert -180 <= ret <= 180
+    return ret
 
 
 def _parse_depth(s):
     if s.endswith('  '):
-        return int(s)
+        ret = int(s)
     else:
-        return int(s)/100
-
+        ret = int(s)/100
+    assert 0 <= ret <= 1000
+    return ret
 
 _ordA = ord('A')
+@none
 def _parse_magnitude(s):
     if s[0] in '-0123456789':
-        return int(s)/10
+        ret = int(s)/10
     else:
-        return (_ordA - ord(s[0]) - 1) - int(s[1])/10
+        ret = (_ordA - ord(s[0]) - 1) - int(s[1])/10
+    assert ret <= 16
+    return ret
 
 
 def load(fp):
@@ -55,7 +76,11 @@ def parse_record(line):
     if line[0] == 'C':
         return {'record_type': line[0], 'comment': line[1:]}
     else:
-        return _parse_record(line)
+        try:
+            return _parse_record(line)
+        except Exception as e:
+            print('FAIL: {}'.format(line), file=sys.stderr)
+            raise e
 
 
 _parse_record = eq.kshramt.make_parse_fixed_width((
@@ -69,13 +94,13 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     ('hour', 2, int),
     ('minute', 2, int),
     ('second', 4, lambda s: int(s)/100),
-    ('second_standard_error', 4, lambda s: int(s)/100),
+    ('second_standard_error', 4, none(lambda s: int(s)/100)),
     ('latitude', 7, _parse_latitude), # degree
-    ('latitude_standard_error', 4, lambda s: int(s)/100/60), # degree
+    ('latitude_standard_error', 4, none(lambda s: int(s)/100/60)), # degree
     ('longitude', 8, _parse_longitude), # degree
-    ('longitude_standard_error', 4, lambda s: int(s)/100/60), # degree
+    ('longitude_standard_error', 4, none(lambda s: int(s)/100/60)), # degree
     ('depth', 5, _parse_depth), # km
-    ('depth_error', 3, lambda s: int(s)/100), # km
+    ('depth_error', 3, none(lambda s: int(s)/100)), # km
     # first JMA magunitude or body wave magnitude by USGS
     ('magnitude_1', 2, _parse_magnitude), 
     # 'J': Tsuboi's displacement magnitude (Mj)
@@ -104,13 +129,13 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 5: using S-P time
     # 6: poor solution
     # 7: not determined or not accepted
-    ('precision_of_hypocenter', 1, int),
+    ('precision_of_hypocenter', 1, str),
     # 1: natural earthquake
     # 2: insufficient number of JMA stations
     # 3: artificial event
     # 4: noise
     # 5: low frequency earthquake
-    ('subsidiary_information', 1, int),
+    ('subsidiary_information', 1, str),
     # 1-7: 1-7
     # A: 5 lower
     # B: 5 upper
@@ -146,9 +171,9 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 6: 30 m / damage to more than 500 km of coastline
     ('tsunami_class', 1, str),
     ('district number', 1, int), # district number of epicenter
-    ('region_number', 3, int), # geographical region number of epicenter
+    ('region_number', 3, none(int)), # geographical region number of epicenter
     ('region name', 24, str), # geographical region name of epicenter
-    ('number_of_stations', 3, int), # number of stations contributed to the hypocenter determination
+    ('number_of_stations', 3, none(int)), # number of stations contributed to the hypocenter determination
     # K: high-precision hypocenters
     # S: low-precision hypocenters
     ('hypocenter_determination_flag', 1, str),
@@ -156,6 +181,10 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
 
 
 class Tester(unittest.TestCase):
+
+    def test_parse_record(self):
+        parse_record('J1998110103173692 030 271908 116 1294640 166 99     16v   521   7296NEAR AMAMI-OSHIMA ISLAND  4K')
+        parse_record('U199811012323016     - 90054     1502884     33     44B         9   E NEW GUINEA REG.,P.N.G.    ')
 
     def test_parse_latitude(self):
         self.assertAlmostEqual(_parse_latitude(' 123456'), 12.576)
