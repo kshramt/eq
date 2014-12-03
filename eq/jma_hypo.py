@@ -213,6 +213,7 @@ class Tester(unittest.TestCase):
         self.assertAlmostEqual(_parse_magnitude('B0'), -2)
         self.assertAlmostEqual(_parse_magnitude('C0'), -3)
         self.assertAlmostEqual(_parse_magnitude('C1'), -31e-1)
+        self.assertAlmostEqual(_parse_magnitude('  '), None)
 
 
 if __name__ == '__main__':
