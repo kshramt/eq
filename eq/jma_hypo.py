@@ -58,10 +58,6 @@ def _parse_magnitude(s):
 
 
 def load(fp):
-    return list(load_lazy(fp))
-
-
-def load_lazy(fp):
     return map(parse_record, fp)
 
 
