@@ -1,5 +1,6 @@
 import unittest
 import sys
+import datetime
 
 import eq.kshramt
 
@@ -14,6 +15,17 @@ def none(f):
 def _parse_record_type(s):
     assert s in 'JUI'
     return s
+
+
+def _parse_time(s):
+    y = int(s[:4])
+    m = int(s[4:6])
+    d = int(s[6:8])
+    H = int(s[8:10])
+    M = int(s[10:12])
+    S = int(s[12:14])
+    μS = int(s[14:16])*10000
+    return datetime.datetime(y, m, d, H, M, S, μS)
 
 
 def _parse_latitude(s):
@@ -84,12 +96,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # U: USGS
     # I: ISC/IASPEI/etc.
     ('record_type', 1, _parse_record_type),
-    ('year', 4, int),
-    ('month', 2, int),
-    ('day', 2, int),
-    ('hour', 2, int),
-    ('minute', 2, int),
-    ('second', 4, lambda s: int(s)/100),
+    ('time', 16, _parse_time),
     ('second_standard_error', 4, none(lambda s: int(s)/100)),
     ('latitude', 7, _parse_latitude), # degree
     ('latitude_standard_error', 4, none(lambda s: int(s)/100/60)), # degree
@@ -181,6 +188,9 @@ class Tester(unittest.TestCase):
     def test_parse_record(self):
         parse_record('J1998110103173692 030 271908 116 1294640 166 99     16v   521   7296NEAR AMAMI-OSHIMA ISLAND  4K')
         parse_record('U199811012323016     - 90054     1502884     33     44B         9   E NEW GUINEA REG.,P.N.G.    ')
+
+    def test__parse_time(self):
+        self.assertAlmostEqual(_parse_time('2014012013243258'), datetime.datetime(2014, 1, 20, 13, 24, 32, 580000))
 
     def test_parse_latitude(self):
         self.assertAlmostEqual(_parse_latitude(' 123456'), 12.576)
