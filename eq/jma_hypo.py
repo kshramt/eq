@@ -110,10 +110,10 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 'v': same as 'V', but the number of the used stations is less than 4
     # 'B': USGS body wave magnitude
     # 'S': USGS surface wave magnitude
-    ('magnitude_1_type', 1, str),
+    ('magnitude_1_type', 1, none(str)),
     # second JMA magunitude or surface wave magnitude by USGS
     ('magnitude_2', 2, _parse_magnitude),
-    ('magnitude_2_type', 1, str),
+    ('magnitude_2_type', 1, none(str)),
     # ' ': determined by another agency
     # '1': standard table such as 83A
     # '2': table of far east off the Sanriku district
@@ -121,7 +121,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # '4': table of the regions of southern parts of the Kurile Islands (with 83A travel time table)
     # '5': standard table (JMA 2001)
     # '6': table of the regions of southern of parts of the Kurile Islands (with JMA2001 travel time table)
-    ('travel_time_table', 1, str),
+    ('travel_time_table', 1, none(str)),
     # 1: depth-free method
     # 2: depth-slice method
     # 3: fixed depth
@@ -129,13 +129,13 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 5: using S-P time
     # 6: poor solution
     # 7: not determined or not accepted
-    ('precision_of_hypocenter', 1, str),
+    ('precision_of_hypocenter', 1, none(str)),
     # 1: natural earthquake
     # 2: insufficient number of JMA stations
     # 3: artificial event
     # 4: noise
     # 5: low frequency earthquake
-    ('subsidiary_information', 1, str),
+    ('subsidiary_information', 1, none(str)),
     # 1-7: 1-7
     # A: 5 lower
     # B: 5 upper
@@ -147,7 +147,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # L: local earthquake; felt distance < 100 km
     # F: felt earthquake
     # X: shock is felt by some people but not by JMA observers
-    ('maximum_intensity', 1, str),
+    ('maximum_intensity', 1, none(str)),
     # after Utsu
     # 1 : slight damage (cracks on walls and ground)
     # 2 : light damaged (broken houses, roads, etc.)
@@ -158,7 +158,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 7 : 20,000 or more persons killed or 1,000,000 or more houses completely destroyed
     # X : Injuries or damage were caused but the grade was not clear
     # Y : Injuries and damage are included in the grade for the preceding or following event
-    ('damage_class', 1, str),
+    ('damage_class', 1, none(str)),
     # 1929--1988 Utsu's Tsunami class
     # 1: tsunami was observed by tide gage, but it had no damage
     # T: Tsunami was generated
@@ -169,14 +169,14 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 4: 4--6 m / human injuries
     # 5: 10--20 m / damage to more than 400 km of coastline
     # 6: 30 m / damage to more than 500 km of coastline
-    ('tsunami_class', 1, str),
+    ('tsunami_class', 1, none(str)),
     ('district number', 1, int), # district number of epicenter
     ('region_number', 3, none(int)), # geographical region number of epicenter
     ('region name', 24, str), # geographical region name of epicenter
     ('number_of_stations', 3, none(int)), # number of stations contributed to the hypocenter determination
     # K: high-precision hypocenters
     # S: low-precision hypocenters
-    ('hypocenter_determination_flag', 1, str),
+    ('hypocenter_determination_flag', 1, none(str)),
 ))
 
 
