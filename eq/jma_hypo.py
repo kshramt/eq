@@ -172,7 +172,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     ('tsunami_class', 1, none(str)),
     ('district number', 1, int), # district number of epicenter
     ('region_number', 3, none(int)), # geographical region number of epicenter
-    ('region name', 24, str), # geographical region name of epicenter
+    ('region name', 24, none(str.strip)), # geographical region name of epicenter
     ('number_of_stations', 3, none(int)), # number of stations contributed to the hypocenter determination
     # K: high-precision hypocenters
     # S: low-precision hypocenters
