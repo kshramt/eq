@@ -12,19 +12,23 @@ def none(f):
     return none_f
 
 
+def zero(s):
+    return s.replace(' ', '0')
+
+
 def _parse_record_type(s):
     assert s in 'JUI'
     return s
 
 
 def _parse_time(s):
-    y = int(s[:4])
-    m = int(s[4:6])
-    d = int(s[6:8])
-    H = int(s[8:10])
-    M = int(s[10:12])
-    S = int(s[12:14])
-    μS = int(s[14:16])*10000
+    y = int(zero(s[:4]))
+    m = int(zero(s[4:6]))
+    d = int(zero(s[6:8]))
+    H = int(zero(s[8:10]))
+    M = int(zero(s[10:12]))
+    S = int(zero(s[12:14]))
+    μS = int(zero(s[14:16]))*10000
     return datetime.datetime(y, m, d, H, M, S, μS)
 
 
@@ -32,8 +36,8 @@ def _parse_latitude(s):
     sign = 1
     if s.startswith('-'):
         sign = -1
-    d = int(s[1:3])
-    m = int(s[3:])/100
+    d = int(zero(s[1:3]))
+    m = int(zero(s[3:]))/100
     ret = sign*(d + m/60)
     assert -90 <= ret <= 90
     return ret
@@ -43,8 +47,8 @@ def _parse_longitude(s):
     sign = 1
     if s.startswith('-'):
         sign = -1
-    d = int(s[1:4])
-    m = int(s[4:])/100
+    d = int(zero(s[1:4]))
+    m = int(zero(s[4:]))/100
     ret = sign*(d + m/60)
     assert -180 <= ret <= 180
     return ret
@@ -52,9 +56,9 @@ def _parse_longitude(s):
 
 def _parse_depth(s):
     if s.endswith('  '):
-        ret = int(s)
+        ret = int(zero(s[:3]))
     else:
-        ret = int(s)/100
+        ret = int(zero(s))/100
     assert 0 <= ret <= 1000
     return ret
 
@@ -97,13 +101,13 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # I: ISC/IASPEI/etc.
     ('record_type', 1, _parse_record_type),
     ('time', 16, _parse_time),
-    ('second_standard_error', 4, none(lambda s: int(s)/100)),
+    ('second_standard_error', 4, none(lambda s: int(zero(s))/100)),
     ('latitude', 7, _parse_latitude), # degree
-    ('latitude_standard_error', 4, none(lambda s: int(s)/100/60)), # degree
+    ('latitude_standard_error', 4, none(lambda s: int(zero(s))/100/60)), # degree
     ('longitude', 8, _parse_longitude), # degree
-    ('longitude_standard_error', 4, none(lambda s: int(s)/100/60)), # degree
+    ('longitude_standard_error', 4, none(lambda s: int(zero(s))/100/60)), # degree
     ('depth', 5, _parse_depth), # km
-    ('depth_error', 3, none(lambda s: int(s)/100)), # km
+    ('depth_error', 3, none(lambda s: int(zero(s))/100)), # km
     # first JMA magunitude or body wave magnitude by USGS
     ('magnitude_1', 2, _parse_magnitude), 
     # 'J': Tsuboi's displacement magnitude (Mj)
