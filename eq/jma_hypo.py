@@ -181,9 +181,9 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 5: 10--20 m / damage to more than 400 km of coastline
     # 6: 30 m / damage to more than 500 km of coastline
     ('tsunami_class', 1, none(str)),
-    ('district number', 1, none(int)), # district number of epicenter
+    ('district_number', 1, none(int)), # district number of epicenter
     ('region_number', 3, none(int)), # geographical region number of epicenter
-    ('region name', 24, none(str.strip)), # geographical region name of epicenter
+    ('region_name', 24, none(str.strip)), # geographical region name of epicenter
     ('number_of_stations', 3, none(int)), # number of stations contributed to the hypocenter determination
     # K: high-precision hypocenters
     # S: low-precision hypocenters
