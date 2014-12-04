@@ -17,7 +17,7 @@ def zero(s):
 
 
 def _parse_record_type(s):
-    assert s in 'JUI'
+    assert s in 'JUI', s
     return s
 
 
@@ -39,7 +39,7 @@ def _parse_latitude(s):
     d = int(zero(s[1:3]))
     m = int(zero(s[3:]))/100
     ret = sign*(d + m/60)
-    assert -90 <= ret <= 90
+    assert -90 <= ret <= 90, s
     return ret
 
 
@@ -50,7 +50,7 @@ def _parse_longitude(s):
     d = int(zero(s[1:4]))
     m = int(zero(s[4:]))/100
     ret = sign*(d + m/60)
-    assert -180 <= ret <= 180
+    assert -180 <= ret <= 180, s
     return ret
 
 
@@ -59,7 +59,7 @@ def _parse_depth(s):
         ret = int(zero(s[:3]))
     else:
         ret = int(zero(s))/100
-    assert 0 <= ret <= 1000
+    assert 0 <= ret <= 1000, s
     return ret
 
 _ordA = ord('A')
@@ -69,7 +69,7 @@ def _parse_magnitude(s):
         ret = int(s)/10
     else:
         ret = (_ordA - ord(s[0]) - 1) - int(s[1])/10
-    assert ret <= 16
+    assert ret <= 16, s
     return ret
 
 
@@ -84,7 +84,7 @@ def parse_record(line):
     - ftp://ftp.eri.u-tokyo.ac.jp/pub/data/jma/mirror/JMA_HYP/format_e.txt
     """
 
-    assert line[0] in 'JUIC'
+    assert line[0] in 'JUIC', line
     if line[0] == 'C':
         return {'record_type': line[0], 'comment': line[1:]}
     else:
