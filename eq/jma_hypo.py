@@ -13,7 +13,11 @@ def none(f):
 
 
 def zero(s):
-    return s.replace(' ', '0')
+    _s = s.lstrip()
+    if _s:
+        return _s.replace(' ', '0')
+    else:
+        return '0'
 
 
 def _parse_record_type(s):
@@ -177,7 +181,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     # 5: 10--20 m / damage to more than 400 km of coastline
     # 6: 30 m / damage to more than 500 km of coastline
     ('tsunami_class', 1, none(str)),
-    ('district number', 1, int), # district number of epicenter
+    ('district number', 1, none(int)), # district number of epicenter
     ('region_number', 3, none(int)), # geographical region number of epicenter
     ('region name', 24, none(str.strip)), # geographical region name of epicenter
     ('number_of_stations', 3, none(int)), # number of stations contributed to the hypocenter determination
@@ -190,6 +194,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
 class Tester(unittest.TestCase):
 
     def test_parse_record(self):
+        parse_record('J192408012201         35         13930        0     65J    325Y     SAGAMI BAY ?              5K')
         parse_record('J1998110103173692 030 271908 116 1294640 166 99     16v   521   7296NEAR AMAMI-OSHIMA ISLAND  4K')
         parse_record('U199811012323016     - 90054     1502884     33     44B         9   E NEW GUINEA REG.,P.N.G.    ')
 
