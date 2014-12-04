@@ -69,7 +69,7 @@ def _parse_depth(s):
 _ordA = ord('A')
 @none
 def _parse_magnitude(s):
-    if s[0] in '-0123456789':
+    if s[0] in ' -0123456789':
         ret = int(s)/10
     else:
         ret = (_ordA - ord(s[0]) - 1) - int(s[1])/10
@@ -194,6 +194,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
 class Tester(unittest.TestCase):
 
     def test_parse_record(self):
+        parse_record('U199711081924569     -220678     1793462    606      2B         9   SOUTH OF FIJI               ')
         parse_record('J192408012201         35         13930        0     65J    325Y     SAGAMI BAY ?              5K')
         parse_record('J1998110103173692 030 271908 116 1294640 166 99     16v   521   7296NEAR AMAMI-OSHIMA ISLAND  4K')
         parse_record('U199811012323016     - 90054     1502884     33     44B         9   E NEW GUINEA REG.,P.N.G.    ')
@@ -229,6 +230,7 @@ class Tester(unittest.TestCase):
         self.assertAlmostEqual(_parse_magnitude('C0'), -3)
         self.assertAlmostEqual(_parse_magnitude('C1'), -31e-1)
         self.assertAlmostEqual(_parse_magnitude('  '), None)
+        self.assertAlmostEqual(_parse_magnitude(' 2'), 0.2)
 
 
 if __name__ == '__main__':
