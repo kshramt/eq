@@ -77,11 +77,14 @@ def _parse_magnitude(s):
 
 
 def load(fp, fail_fn=None):
-    for line in fp:
-        try:
+    if fail_fn is None:
+        for line in fp:
             yield parse_record(line)
-        except Exception as e:
-            if fail_fn:
+    else:
+        for line in fp:
+            try:
+                yield parse_record(line)
+            except Exception as e:
                 fail_fn(line, e)
 
 
