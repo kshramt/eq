@@ -1,5 +1,4 @@
 import unittest
-import sys
 import datetime
 
 import eq.kshramt
@@ -77,8 +76,13 @@ def _parse_magnitude(s):
     return ret
 
 
-def load(fp):
-    return map(parse_record, fp)
+def load(fp, fail_fn=None):
+    for line in fp:
+        try:
+            yield parse_record(line)
+        except Exception as e:
+            if fail_fn:
+                fail_fn(line, e)
 
 
 def parse_record(line):
@@ -88,15 +92,10 @@ def parse_record(line):
     - ftp://ftp.eri.u-tokyo.ac.jp/pub/data/jma/mirror/JMA_HYP/format_e.txt
     """
 
-    assert line[0] in 'JUIC', line
     if line[0] == 'C':
         return {'record_type': line[0], 'comment': line[1:]}
     else:
-        try:
-            return _parse_record(line)
-        except Exception as e:
-            print('FAIL: {}'.format(line), file=sys.stderr)
-            raise e
+        return _parse_record(line)
 
 
 _parse_record = eq.kshramt.make_parse_fixed_width((
