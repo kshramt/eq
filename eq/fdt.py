@@ -51,7 +51,9 @@ def load(fp, fail_fn=None):
             try:
                 yield parse_record(line)
             except Exception as e:
-                fail_fn(line, e)
+                is_yield, val = fail_fn(line, e)
+                if is_yield:
+                    yield val
 
 
 def parse_record(line):
