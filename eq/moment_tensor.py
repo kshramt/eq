@@ -98,7 +98,6 @@ class MomentTensor(object):
         self += (-1)*other
         return self
 
-
     def __sub__(self, other):
         ret = type(self)()
         ret.mxyz = self.mxyz
@@ -487,6 +486,7 @@ def _rotate_xy(t):
                      (s, c, 0e0),
                      (0e0, 0e0, 1e0)))
 
+
 def _rotate_xz(t):
     c = cos(t)
     s = sin(t)
@@ -616,8 +616,8 @@ class Tester(unittest.TestCase):
                                                                0, -1, 0,
                                                                0, 0, 0)),
                                       (0, HALF_PI/2, -HALF_PI, (1, 0, 0,
-                                                              0, 0, 0,
-                                                              0, 0, -1)),
+                                                                0, 0, 0,
+                                                                0, 0, -1)),
                                       (-PI, HALF_PI/2, -HALF_PI, (1, 0, 0,
                                                                   0, 0, 0,
                                                                   0, 0, -1)),
