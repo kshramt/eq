@@ -7,6 +7,9 @@ MY_PYTHON ?= python3.3
 MY_RUBY ?= ruby2.0
 MY_PYFLAKES ?= pyflakes-3.3
 
+PYTHON_FILES := $(shell git ls-files '**/*.py')
+PYTHON_TESTED_FILES := $(addsuffix .tested,$(PYTHON_FILES))
+
 # Configurations
 .SUFFIXES:
 .DELETE_ON_ERROR:
@@ -17,20 +20,13 @@ export SHELLOPTS := pipefail:errexit:nounset:noclobber
 
 # Tasks
 
-.PHONY: all deps test test_coverage build
+.PHONY: all deps check check_coverage build
 all: deps
 deps: $(DEPS:%=dep/%.updated) eq/kshramt.py
 
-test: deps
-	for f in $$(git ls-files **/*.py)
-	do
-	   echo
-	   echo "$$f"
-	   coverage run -a "$$f"
-	   $(MY_PYFLAKES) "$$f"
-	done
+check: deps $(PYTHON_TESTED_FILES)
 
-test_coverage: test
+check_coverage: check
 	coverage html
 
 build: deps
@@ -53,6 +49,11 @@ eq/kshramt.py: dep/kshramt_py/kshramt.py
 	cp -a $< $@
 
 # Rules
+
+%.py.tested: %.py
+	coverage run -a $<
+	$(MY_PYFLAKES) $<
+	touch $@
 
 define DEPS_RULE_TEMPLATE =
 dep/$(1)/%: | dep/$(1).updated ;

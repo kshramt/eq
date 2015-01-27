@@ -9,7 +9,7 @@ make build
 ## Test
 
 ```bash
-make test
+make check
 ```
 
 ## License
