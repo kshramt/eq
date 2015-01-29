@@ -6,7 +6,7 @@ import io
 
 
 def load(fp):
-    version = fp.readline().strip()
+    version = _read_line(fp).strip()
     if version == '1.0':
         ret = _parse_1_0(fp)
     elif version == '1.1':
@@ -19,10 +19,10 @@ def load(fp):
 
 def _parse_1_1(fp):
     ret = {}
-    section_name, n = _read_line_split(fp)
+    section_name, n = _read_line(fp).split()
     if section_name == 'PLANE':
         ret['plane'] = _parse_plane_section_1_1(fp, int(n))
-        section_name, n = fp.readline().strip().split()
+        section_name, n = _read_line(fp).split()
     assert section_name == 'POINTS'
     ret['points'] = _parse_points_section_1_1(fp, int(n))
     return ret
@@ -59,8 +59,8 @@ def _parse_point_1_1(fp):
 
     ret = {}
     ret['lon'], ret['lat'], ret['dep'], ret['stk'], ret['dip'], ret['area'], ret['tinit'], ret['dt'] \
-        = [float(x) for x in _read_line_split(fp)]
-    rake, slip1, nt1, slip2, nt2, slip3, nt3 = _read_line_split(fp)
+        = [float(x) for x in _read_line(fp).split()]
+    rake, slip1, nt1, slip2, nt2, slip3, nt3 = _read_line(fp).split()
     ret['rake'] = float(rake)
     ret['slip1'] = float(slip1)
     ret['nt1'] = int(nt1)
@@ -107,21 +107,21 @@ def _parse_plane_1_1(fp):
     """
 
     ret = {}
-    elon, elat, nstk, ndip, len_, wid = _read_line_split(fp)
+    elon, elat, nstk, ndip, len_, wid = _read_line(fp).split()
     ret['elon'] = float(elon)
     ret['elat'] = float(elat)
     ret['nstk'] = int(nstk)
     ret['ndip'] = int(ndip)
     ret['len'] = float(len_)
     ret['wid'] = float(wid)
-    ret['stk'], ret['dip'], ret['dtop'], ret['shyp'], ret['dhyp'] = [float(x) for x in _read_line_split(fp)]
+    ret['stk'], ret['dip'], ret['dtop'], ret['shyp'], ret['dhyp'] = [float(x) for x in _read_line(fp).split()]
     return ret
 
 
-def _read_line_split(fp):
+def _read_line(fp):
     line = fp.readline()
     assert line
-    return line.split()
+    return line
 
 
 class _Tester(unittest.TestCase):
