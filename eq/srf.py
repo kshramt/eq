@@ -78,12 +78,10 @@ def _parse_sv_1_1(fp, n):
     ret = []
     if n > 0:
         for line in fp:
-            xs = [float(x) for x in line.split()]
-            ret.extend(xs)
-            n -= len(xs)
-            if n <= 0:
+            ret.extend(float(x) for x in line.split())
+            if len(ret) >= n:
                 break
-    assert n == 0
+    assert len(ret) == n
     return ret
 
 
