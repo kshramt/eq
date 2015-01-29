@@ -117,7 +117,7 @@ _parse_record = eq.kshramt.make_parse_fixed_width((
     ('depth', 5, _parse_depth), # km
     ('depth_error', 3, none(lambda s: int(zero(s))/100)), # km
     # first JMA magunitude or body wave magnitude by USGS
-    ('magnitude_1', 2, _parse_magnitude), 
+    ('magnitude_1', 2, _parse_magnitude),
     # 'J': Tsuboi's displacement magnitude (Mj)
     # 'D': displacement magnitude
     # 'd': same as 'D', but the number of the used stations is less than 3
