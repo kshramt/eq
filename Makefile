@@ -68,7 +68,7 @@ $(foreach f,$(DEPS),$(eval $(call DEPS_RULE_TEMPLATE,$(f))))
 dep/%.updated: config/dep/%.ref.sha256 dep/%.synced
 	cd $(@D)/$*
 	git fetch origin
-	git merge "$$(cat ../../$(call unsha256,$<))"
+	git checkout "$$(cat ../../$(call unsha256,$<))"
 	cd -
 	if [[ -r dep/$*/Makefile ]]; then
 	   $(MAKE) -C dep/$*
