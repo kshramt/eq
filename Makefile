@@ -75,7 +75,7 @@ dep/%.updated: config/dep/%.ref.sha256 dep/%.synced
 	fi
 	touch $@
 
-dep/%.synced: config/dep/%.uri.sha256
+dep/%.synced: config/dep/%.uri.sha256 | dep/%
 	cd $(@D)/$*
 	git remote rm origin
 	git remote add origin "$$(cat ../../$(call unsha256,$<))"
