@@ -4,8 +4,9 @@ DEPS := kshramt_py
 
 
 MY_PYTHON ?= python3.3
-MY_RUBY ?= ruby2.0
+PYTHON := $(MY_PYTHON)
 MY_PYFLAKES ?= pyflakes-3.3
+PYFLAKES := $(MY_PYFLAKES)
 
 PYTHON_FILES := $(shell git ls-files '**/*.py')
 PYTHON_TESTED_FILES := $(addsuffix .tested,$(PYTHON_FILES))
@@ -25,14 +26,11 @@ unsha256 = $(1:%.sha256=%)
 
 # Tasks
 
-.PHONY: all deps check check_coverage build
+.PHONY: all deps check build
 all: deps
 deps: $(DEPS:%=dep/%.updated) eq/kshramt.py
 
 check: deps $(PYTHON_TESTED_FILES)
-
-check_coverage: check
-	coverage html
 
 build: deps
 	readonly tmp_dir="$$(mktemp -d)"
@@ -56,8 +54,8 @@ eq/kshramt.py: $(call sha256,dep/kshramt_py/kshramt.py)
 # Rules
 
 %.py.tested: %.py.sha256
-	coverage run -a $(call unsha256,$<)
-	$(MY_PYFLAKES) $(call unsha256,$<)
+	$(PYFLAKES) $(call unsha256,$<)
+	$(PYTHON) $(call unsha256,$<)
 	touch $@
 
 
