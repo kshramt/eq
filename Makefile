@@ -26,13 +26,24 @@ unsha256 = $(1:%.sha256=%)
 
 # Tasks
 
-.PHONY: all deps check build
-all: deps
-deps: $(DEPS:%=dep/%.updated) eq/kshramt.py
+.PHONY: download-deps arrange-deps all all-impl check check-impl build build-impl
 
-check: deps $(PYTHON_TESTED_FILES)
 
-build: deps
+define INTERFACE_TARGET_TEMPLATE =
+$(1):
+	$$(MAKE) download-deps
+	$$(MAKE) $(1)-impl
+endef
+$(foreach f,all check build,$(eval $(call INTERFACE_TARGET_TEMPLATE,$(f))))
+
+
+all-impl: arrange-deps
+
+
+check-impl: arrange-deps $(PYTHON_TESTED_FILES)
+
+
+build-impl: arrange-deps
 	readonly tmp_dir="$$(mktemp -d)"
 	git ls-files | xargs -I{} echo cp --parents ./{} "$$tmp_dir"
 	git ls-files | xargs -I{} cp --parents ./{} "$$tmp_dir"
@@ -43,6 +54,10 @@ build: deps
 	mkdir -p dist
 	mv -f dist/* $(DIR)/dist/
 	rm -fr "$${tmp_dir}"
+
+
+arrange-deps: eq/kshramt.py
+download-deps: $(DEPS:%=dep/%.updated)
 
 
 # Files
@@ -58,12 +73,6 @@ eq/kshramt.py: $(call sha256,dep/kshramt_py/kshramt.py)
 	$(PYTHON) $(call unsha256,$<)
 	touch $@
 
-
-define DEPS_RULE_TEMPLATE =
-dep/$(1)/%.sha256.new: dep/$(1)/% | dep/$(1).updated
-	sha256sum $$< >| $$@
-endef
-$(foreach f,$(DEPS),$(eval $(call DEPS_RULE_TEMPLATE,$(f))))
 
 dep/%.updated: config/dep/%.ref.sha256 dep/%.synced
 	cd $(@D)/$*
