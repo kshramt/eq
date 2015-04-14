@@ -13,9 +13,14 @@ PYTHON_TESTED_FILES := $(addsuffix .tested,$(PYTHON_FILES))
 # Configurations
 .SUFFIXES:
 .DELETE_ON_ERROR:
+.PRECIOUS: %.sha256 %.sha256.new
 .ONESHELL:
 export SHELL := /bin/bash
 export SHELLOPTS := pipefail:errexit:nounset:noclobber
+
+
+sha256 = $(1:%=%.sha256)
+unsha256 = $(1:%.sha256=%)
 
 
 # Tasks
@@ -44,36 +49,38 @@ build: deps
 
 # Files
 
-eq/kshramt.py: dep/kshramt_py/kshramt.py
+eq/kshramt.py: $(call sha256,dep/kshramt_py/kshramt.py)
 	mkdir -p $(@D)
-	cp -a $< $@
+	cat $(call unsha256,$<) >| $@
 
 # Rules
 
-%.py.tested: %.py
-	coverage run -a $<
-	$(MY_PYFLAKES) $<
+%.py.tested: %.py.sha256
+	coverage run -a $(call unsha256,$<)
+	$(MY_PYFLAKES) $(call unsha256,$<)
 	touch $@
 
+
 define DEPS_RULE_TEMPLATE =
-dep/$(1)/%: | dep/$(1).updated ;
+dep/$(1)/%.sha256.new: dep/$(1)/% | dep/$(1).updated
+	sha256sum $$< >| $$@
 endef
 $(foreach f,$(DEPS),$(eval $(call DEPS_RULE_TEMPLATE,$(f))))
 
-dep/%.updated: config/dep/%.ref dep/%.synced
+dep/%.updated: config/dep/%.ref.sha256 dep/%.synced
 	cd $(@D)/$*
 	git fetch origin
-	git merge "$$(cat ../../$<)"
+	git merge "$$(cat ../../$(call unsha256,$<))"
 	cd -
 	if [[ -r dep/$*/Makefile ]]; then
 	   $(MAKE) -C dep/$*
 	fi
 	touch $@
 
-dep/%.synced: config/dep/%.uri | dep/%
+dep/%.synced: config/dep/%.uri.sha256
 	cd $(@D)/$*
 	git remote rm origin
-	git remote add origin "$$(cat ../../$<)"
+	git remote add origin "$$(cat ../../$(call unsha256,$<))"
 	cd -
 	touch $@
 
@@ -81,3 +88,11 @@ $(DEPS:%=dep/%): dep/%:
 	git init $@
 	cd $@
 	git remote add origin "$$(cat ../../config/dep/$*.uri)"
+
+
+%.sha256.new: %
+	sha256sum $< >| $@
+
+
+%.sha256: %.sha256.new
+	cmp -s $< $@ || cat $< >| $@
