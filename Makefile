@@ -14,14 +14,10 @@ PYTHON_TESTED_FILES := $(addsuffix .tested,$(PYTHON_FILES))
 # Configurations
 .SUFFIXES:
 .DELETE_ON_ERROR:
-.PRECIOUS: %.sha256 %.sha256.new
+.PRECIOUS:
 .ONESHELL:
 export SHELL := /bin/bash
 export SHELLOPTS := pipefail:errexit:nounset:noclobber
-
-
-sha256 = $(1:%=%.sha256)
-unsha256 = $(1:%.sha256=%)
 
 
 # Tasks
@@ -62,32 +58,32 @@ download-deps: $(DEPS:%=dep/%.updated)
 
 # Files
 
-eq/kshramt.py: $(call sha256,dep/kshramt_py/kshramt.py)
+eq/kshramt.py: dep/kshramt_py/kshramt.py
 	mkdir -p $(@D)
-	cat $(call unsha256,$<) >| $@
+	cat $< >| $@
 
 # Rules
 
-%.py.tested: %.py.sha256
-	$(PYFLAKES) $(call unsha256,$<)
-	$(PYTHON) $(call unsha256,$<)
+%.py.tested: %.py
+	$(PYFLAKES) $<
+	$(PYTHON) $<
 	touch $@
 
 
-dep/%.updated: config/dep/%.ref.sha256 dep/%.synced
+dep/%.updated: config/dep/%.ref dep/%.synced
 	cd $(@D)/$*
 	git fetch origin
-	git checkout "$$(cat ../../$(call unsha256,$<))"
+	git checkout "$$(cat ../../$<)"
 	cd -
 	if [[ -r dep/$*/Makefile ]]; then
 	   $(MAKE) -C dep/$*
 	fi
 	touch $@
 
-dep/%.synced: config/dep/%.uri.sha256 | dep/%
+dep/%.synced: config/dep/%.uri | dep/%
 	cd $(@D)/$*
 	git remote rm origin
-	git remote add origin "$$(cat ../../$(call unsha256,$<))"
+	git remote add origin "$$(cat ../../$<)"
 	cd -
 	touch $@
 
@@ -95,11 +91,3 @@ $(DEPS:%=dep/%): dep/%:
 	git init $@
 	cd $@
 	git remote add origin "$$(cat ../../config/dep/$*.uri)"
-
-
-%.sha256.new: %
-	sha256sum $< >| $@
-
-
-%.sha256: %.sha256.new
-	cmp -s $< $@ || cat $< >| $@
