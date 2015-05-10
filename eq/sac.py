@@ -646,7 +646,7 @@ class Sac:
             return self.of_ascii(x)
         elif isinstance(x, bytes):
             return self.of_binary(x)
-        elif hasatter(x, 'read'):
+        elif hasattr(x, 'read'):
             return self.of_(x.read())
         else:
             raise ValueError("unsupported input type: {}".format(type(x)))
