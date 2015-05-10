@@ -1,5 +1,4 @@
 # Constants
-DIR := $(abspath .)
 DEPS := kshramt_py
 
 
@@ -22,24 +21,14 @@ export SHELLOPTS := pipefail:errexit:nounset:noclobber
 
 # Tasks
 
-.PHONY: download-deps arrange-deps all all-impl check check-impl build build-impl
+.PHONY: deps all check build
 
 
-define INTERFACE_TARGET_TEMPLATE =
-$(1):
-	$$(MAKE) download-deps
-	$$(MAKE) $(1)-impl
-endef
-$(foreach f,all check build,$(eval $(call INTERFACE_TARGET_TEMPLATE,$(f))))
+check: deps $(PYTHON_TESTED_FILES)
+all: deps
 
 
-all-impl: arrange-deps
-
-
-check-impl: arrange-deps $(PYTHON_TESTED_FILES)
-
-
-build-impl: arrange-deps
+build: deps
 	readonly tmp_dir="$$(mktemp -d)"
 	git ls-files | xargs -I{} echo cp --parents ./{} "$$tmp_dir"
 	git ls-files | xargs -I{} cp --parents ./{} "$$tmp_dir"
@@ -48,12 +37,11 @@ build-impl: arrange-deps
 	cd "$$tmp_dir"
 	$(MY_PYTHON) setup.py sdist
 	mkdir -p dist
-	mv -f dist/* $(DIR)/dist/
+	mv -f dist/* $(CURDIR)/dist/
 	rm -fr "$${tmp_dir}"
 
 
-arrange-deps: eq/kshramt.py
-download-deps: $(DEPS:%=dep/%.updated)
+deps: eq/kshramt.py
 
 
 # Files
@@ -68,6 +56,12 @@ eq/kshramt.py: dep/kshramt_py/kshramt.py
 	$(PYFLAKES) $<
 	$(PYTHON) $<
 	touch $@
+
+
+define DEPS_RULE_TEMPLATE =
+dep/$(1)/%: | dep/$(1).updated ;
+endef
+$(foreach f,$(DEPS),$(eval $(call DEPS_RULE_TEMPLATE,$(f))))
 
 
 dep/%.updated: config/dep/%.ref dep/%.synced
