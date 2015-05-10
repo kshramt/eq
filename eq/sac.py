@@ -1,5 +1,10 @@
 """
+# Note
+
+Header fields are not automatically updated.
+
 # REFERENCES
+
 - [SAC User Manual/SAC Data Format](http://www.iris.edu/software/sac/manual/file_format.html)
 """
 
