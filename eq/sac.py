@@ -527,7 +527,6 @@ def _internal_of_itime(xs):
 
 def _internal_of_ixy(xsys):
     xs, ys = xsys
-    assert np.size(xs) == np.size(ys)
     return _assert_floats(np.concatenate((ys, xs)))
 
 
@@ -555,7 +554,6 @@ def _make_of_binary():
         for name, il, ir, fn in name_il_ir_fns:
             setattr(self, name, fn(b[il:ir]))
         internal = np.fromstring(b[n_meta_binary_bytes:], dtype=FLOAT)
-        assert np.size(internal) == self.npts
         self.data = _data_of_internal(internal, self.iftype)
         return self
     return of_binary
@@ -579,7 +577,6 @@ def _make_of_ascii():
         for name, il, ir, fn in name_il_ir_fns:
             setattr(self, name, fn(b[il:ir].decode()))
         internal = np.fromstring(b[n_meta_ascii_bytes + 1:].decode(), dtype=FLOAT, sep=' ')
-        assert np.size(internal) == self.npts
         self.data = _data_of_internal(internal, self.iftype)
         return self
     return of_ascii
@@ -609,7 +606,7 @@ def _ixy_of_internal(xs):
     """
     [y1, y2, ..., x1, x2, ...] -> (xs, ys)
     """
-    n = np.size(xs)
+    n = len(xs)
     assert n%2 == 0
     return xs[n//2:], xs[:n//2]
 
@@ -660,13 +657,11 @@ class Sac:
     def __bytes__(self):
         b = b''.join(field.to_binary(getattr(self, field.name)) for field in _FIELDS)
         internal = _internal_of_data(self.data, self.iftype)
-        assert np.size(internal) == self.npts
         return b + np.asarray(internal, dtype=FLOAT).tobytes()
 
     def __str__(self):
         s = ''.join(field.to_ascii(getattr(self, field.name)) for field in _FIELDS)
         internal = _internal_of_data(self.data, self.iftype)
-        assert np.size(internal) == self.npts
         form = _ASCII_FORMAT_OF_TYPE['float']
         strs = []
         for i, x in enumerate(internal):
