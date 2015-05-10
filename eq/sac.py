@@ -525,7 +525,8 @@ def _internal_of_itime(xs):
     return _assert_floats(xs)
 
 
-def _internal_of_ixy(xs, ys):
+def _internal_of_ixy(xsys):
+    xs, ys = xsys
     assert np.size(xs) == np.size(ys)
     return _assert_floats(np.concatenate((ys, xs)))
 
@@ -546,6 +547,7 @@ def _make_of_binary():
         name_il_ir_fns.append((field.name, il, ir, field.of_binary))
         il = ir
     n_meta_binary_bytes = ir
+
     def of_binary(self, b):
         nb = len(b)
         if nb < n_meta_binary_bytes:
@@ -569,6 +571,7 @@ def _make_of_ascii():
         name_il_ir_fns.append((field.name, il, ir, field.of_ascii))
         il = ir
     n_meta_ascii_bytes = ir
+
     def of_ascii(self, s):
         b = s.encode()
         if len(b) < n_meta_ascii_bytes:
@@ -634,9 +637,9 @@ def _irlim_of_internal(xs):
 class Sac:
 
     def __init__(self, x=None):
-        self.of_(x)
+        self.of(x)
 
-    def of_(self, x):
+    def of(self, x):
         self._init_fields()
         if x is None:
             return self
@@ -647,13 +650,12 @@ class Sac:
         elif isinstance(x, bytes):
             return self.of_binary(x)
         elif hasattr(x, 'read'):
-            return self.of_(x.read())
+            return self.of(x.read())
         else:
             raise ValueError("unsupported input type: {}".format(type(x)))
 
     def __eq__(self, other):
         return bytes(self) == bytes(other)
-
 
     def __bytes__(self):
         b = b''.join(field.to_binary(getattr(self, field.name)) for field in _FIELDS)
