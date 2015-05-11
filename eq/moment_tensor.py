@@ -65,7 +65,15 @@ class MomentTensor(object):
         return 'xx:{}\tyy:{}\tzz:{}\txy:{}\txz:{}\tyz:{}'.format(self.xx, self.yy, self.zz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
-        return isinstance(other, type(self)) and self.mxyz == other.mxyz
+        return (
+            isinstance(other, type(self)) and
+            self.xx == other.xx and
+            self.yy == other.yy and
+            self.zz == other.zz and
+            self.xy == other.xy and
+            self.xz == other.xz and
+            self.yz == other.yz
+        )
 
     def __itruediv__(self, x):
         self *= 1/x
@@ -211,9 +219,13 @@ class MomentTensor(object):
 
     @property
     def mxyz(self):
-        return ((self.xx, self.xy, self.xz),
+        return np.asarray(
+            (
+                (self.xx, self.xy, self.xz),
                 (self.yx, self.yy, self.yz),
-                (self.zx, self.zy, self.zz))
+                (self.zx, self.zy, self.zz),
+            )
+        )
 
     @mxyz.setter
     def mxyz(self, value):
@@ -233,9 +245,13 @@ class MomentTensor(object):
 
     @property
     def mrtf(self):
-        return ((self.rr, self.rt, self.rf),
+        return np.asarray(
+            (
+                (self.rr, self.rt, self.rf),
                 (self.tr, self.tt, self.tf),
-                (self.fr, self.ft, self.ff))
+                (self.fr, self.ft, self.ff),
+            )
+        )
 
     @mrtf.setter
     def mrtf(self, value):
@@ -698,12 +714,17 @@ class Tester(unittest.TestCase):
     def test_mrtf(self):
         orig = self.m.mrtf
         self.m.mrtf = orig
-        self.assertAlmostEqual(self.m.mrtf, orig)
+        for i in range(3):
+            for j in range(3):
+                self.assertAlmostEqual(self.m.mrtf[i, j], orig[i, j])
 
     def test_mxyz(self):
         orig = self.m.mxyz
         self.m.mxyz = orig
-        self.assertAlmostEqual(self.m.mxyz, orig)
+        new = self.m.mxyz
+        for i in range(3):
+            for j in range(3):
+                self.assertAlmostEqual(new[i, j], orig[i, j])
 
     def test_m1to6(self):
         m1to6 = (1, 2, 3, 4, 5, 6)
