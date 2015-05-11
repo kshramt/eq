@@ -41,7 +41,7 @@ build: deps
 	rm -fr "$${tmp_dir}"
 
 
-deps: eq/kshramt.py
+deps: $(DEPS:%=dep/%.updated) eq/kshramt.py
 
 
 # Files

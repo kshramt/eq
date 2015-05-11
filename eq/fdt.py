@@ -42,20 +42,6 @@ def to_strike_dip_rake(f_az, f_pl, s_az, s_pl, faulting_type, comment=None):
     return strike, dip, rake
 
 
-def load(fp, fail_fn=None):
-    if fail_fn is None:
-        for line in fp:
-            yield parse_record(line)
-    else:
-        for line in fp:
-            try:
-                yield parse_record(line)
-            except Exception as e:
-                is_yield, val = fail_fn(line, e)
-                if is_yield:
-                    yield val
-
-
 def parse_record(line):
     """
     input: degree
@@ -72,6 +58,9 @@ def parse_record(line):
     if comment:
         ret['comment'] = comment[0]
     return ret
+
+
+load = eq.kshramt.make_load(iter, parse_record)
 
 
 class Error(Exception):

@@ -76,20 +76,6 @@ def _parse_magnitude(s):
     return ret
 
 
-def load(fp, fail_fn=None):
-    if fail_fn is None:
-        for line in fp:
-            yield parse_record(line)
-    else:
-        for line in fp:
-            try:
-                yield parse_record(line)
-            except Exception as e:
-                is_yield, val = fail_fn(line, e)
-                if is_yield:
-                    yield val
-
-
 def parse_record(line):
     """
     see:
@@ -101,6 +87,9 @@ def parse_record(line):
         return {'record_type': line[0], 'comment': line[1:]}
     else:
         return _parse_record(line)
+
+
+load = eq.kshramt.make_load(iter, parse_record)
 
 
 _parse_record = eq.kshramt.make_parse_fixed_width((
