@@ -36,7 +36,7 @@ build: deps
 	cp eq/kshramt.py "$${tmp_dir}"/eq
 	cd "$$tmp_dir"
 	$(MY_PYTHON) setup.py sdist
-	mkdir -p dist
+	mkdir -p $(CURDIR)/dist/
 	mv -f dist/* $(CURDIR)/dist/
 	rm -fr "$${tmp_dir}"
 
