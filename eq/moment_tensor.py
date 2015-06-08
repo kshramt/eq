@@ -363,10 +363,9 @@ def vtk(points, triangles, amplitudes):
                       '\n'.join('3\t{}\t{}\t{}'.format(i1, i2, i3)
                                 for i1, i2, i3 in triangles),
                       'CELL_DATA {}'.format(len(triangles)),
-                      'SCALARS polarity int 1',
+                      'SCALARS polarity float 1',
                       'LOOKUP_TABLE default',
-                      '\n'.join(str(eq.kshramt.sign(a))
-                                for a in amplitudes)])
+                      '\n'.join(map(str, amplitudes))])
 
 
 def _amplitudes_of_triangles(points, triangles, m2, m3):
