@@ -24,8 +24,8 @@ export SHELLOPTS := pipefail:errexit:nounset:noclobber
 .PHONY: deps all check build
 
 
-check: deps $(PYTHON_TESTED_FILES)
 all: deps
+check: deps $(PYTHON_TESTED_FILES)
 
 
 build: deps
