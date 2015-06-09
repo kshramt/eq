@@ -14,7 +14,7 @@ make check
 
 ## `eq.moment_tensor`
 
-### Output a focal mechanism in VTK format for 3D visualization
+### Output focal mechanisms in VTK format for 3D visualization
 
 ```bash
 python3 <<EOF >| meca.vtk
