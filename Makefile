@@ -28,6 +28,19 @@ all: deps
 check: deps $(PYTHON_TESTED_FILES)
 
 
+up: deps
+	readonly tmp_dir="$$(mktemp -d)"
+	git ls-files | xargs -I{} echo cp --parents ./{} "$$tmp_dir"
+	git ls-files | xargs -I{} cp --parents ./{} "$$tmp_dir"
+	mkdir -p "$${tmp_dir}"/eq
+	cp eq/kshramt.py "$${tmp_dir}"/eq
+	cd "$$tmp_dir"
+	$(MY_PYTHON) setup.py register sdist upload
+	shred ~/.pypirc
+	rm -f ~/.pypirc
+	rm -fr "$${tmp_dir}"
+
+
 build: deps
 	readonly tmp_dir="$$(mktemp -d)"
 	git ls-files | xargs -I{} echo cp --parents ./{} "$$tmp_dir"
