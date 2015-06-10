@@ -66,6 +66,7 @@ eq/kshramt.py: dep/kshramt_py/kshramt.py
 # Rules
 
 %.py.tested: %.py
+	export PYTHONPATH=$(CURDIR):$${PYTHONPATH:-}
 	$(PYFLAKES) $<
 	$(PYTHON) $<
 	touch $@
