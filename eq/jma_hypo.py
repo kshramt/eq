@@ -92,6 +92,10 @@ def parse_record(line):
 load = eq.kshramt.make_load(iter, parse_record)
 
 
+# Format specifications
+# English:  http://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+# Japanese: http://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_j.html
+#           (may be more reliable)
 _parse_record = eq.kshramt.make_parse_fixed_width((
     # J: JMA
     # U: USGS
