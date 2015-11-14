@@ -2,6 +2,7 @@
 
 
 import unittest
+import sys
 import random
 from math import exp, log
 
@@ -40,6 +41,20 @@ def gen_etas_seq(t_end, mu, k, c, alpha, p, mr, tau, mag_fn):
             pair = (t, m, current, parent)
             yield pair
             queue.append(pair)
+
+
+_log10 = log(10)
+
+def random_gr(b, m_min, m_max=sys.float_info.max):
+    """random sampling from the Gutenberg-Richter law
+    return: [m_min, m_max)
+    """
+    assert m_min < m_max
+    b_log10 = b*_log10
+    return -1/b_log10*log(exp(-b_log10*m_min) -
+                          (1 - random.random())*
+                          (exp(-b_log10*m_min) -
+                           exp(-b_log10*m_max)))
 
 
 def _n_events(n):
